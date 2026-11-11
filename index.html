@@ -1,0 +1,2186 @@
+<!DOCTYPE html>
+<html lang="zh-HK">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>香港通勝 — 尚餘日子／吉日倒數曆</title>
+    <!-- Tailwind CSS -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <!-- Google Fonts: Noto Serif TC & Noto Sans TC -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+TC:wght@400;500;700&family=Noto+Serif+TC:wght@600;700;900&display=swap" rel="stylesheet">
+    <!-- Font Awesome Icons -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
+    <!-- 專業農曆與傳統通勝黃曆演算庫 (lunar-javascript) -->
+    <script src="https://cdn.jsdelivr.net/npm/lunar-javascript@1.6.12/lunar.js"></script>
+
+    <script>
+        tailwind.config = {
+            theme: {
+                extend: {
+                    colors: {
+                        tsRed: '#b81d13',      // 傳統通勝朱砂紅
+                        tsDarkRed: '#7c110a',  // 深朱紅
+                        tsGold: '#b58938',     // 古銅描金
+                        tsPaper: '#fdfaf2',    // 宣紙米黃
+                        tsPaperDark: '#f3ebd8',// 舊紙深米色
+                        tsGreen: '#1e5631',    // 傳統日曆平日深綠
+                        tsInk: '#231f20'       // 墨黑
+                    },
+                    fontFamily: {
+                        serifTC: ['"Noto Serif TC"', 'serif'],
+                        sansTC: ['"Noto Sans TC"', 'sans-serif']
+                    }
+                }
+            }
+        };
+    </script>
+
+    <style>
+        body {
+            background-color: #e6dec8;
+            background-image: radial-gradient(#c9bea3 1px, transparent 1px);
+            background-size: 20px 20px;
+            font-family: 'Noto Serif TC', serif;
+            color: #231f20;
+        }
+
+        /* 傳統通勝雙線花邊外框 */
+        .almanac-border {
+            border: 4px solid #b81d13;
+            outline: 2px solid #b81d13;
+            outline-offset: -8px;
+            background-color: #fdfaf2;
+            box-shadow: 0 12px 30px rgba(80, 20, 10, 0.22);
+        }
+
+        /* 傳統日曆頂部紅頭橫匾 */
+        .calendar-header-binding {
+            background: linear-gradient(180deg, #6b0f09 0%, #b81d13 50%, #8f140c 100%);
+            border-bottom: 4px double #f5d78e;
+        }
+
+        /* 傳統朱紅印章樣式 */
+        .chinese-seal {
+            display: inline-block;
+            border: 2px solid #b81d13;
+            color: #b81d13;
+            font-weight: 900;
+            padding: 1px 6px;
+            line-height: 1.25;
+            letter-spacing: 2px;
+            border-radius: 2px;
+            box-shadow: inset 0 0 0 1px rgba(184, 29, 19, 0.25);
+            background-color: rgba(184, 29, 19, 0.05);
+        }
+
+        .chinese-seal-filled {
+            display: inline-block;
+            background-color: #b81d13;
+            color: #fdfaf2;
+            font-weight: 900;
+            padding: 2px 8px;
+            border: 1px solid #7c110a;
+            border-radius: 2px;
+            letter-spacing: 2px;
+        }
+
+        /* 超大撕頁日曆數字陰影 */
+        .big-calendar-num {
+            line-height: 0.95;
+            text-shadow: 3px 4px 0px rgba(184, 29, 19, 0.14);
+        }
+
+        /* 日曆格子互動動畫 */
+        .day-cell {
+            transition: all 0.15s ease-in-out;
+        }
+        .day-cell:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 4px 10px rgba(184, 29, 19, 0.15);
+            z-index: 10;
+        }
+
+        /* 中央三欄通勝格局響應式微調 */
+        @media (max-width: 767px) {
+            .big-calendar-num {
+                font-size: 4.5rem;
+            }
+        }
+    </style>
+</head>
+<body class="min-h-screen py-3 sm:py-6 px-2 sm:px-6 lg:px-8 overflow-x-hidden">
+
+    <!-- 主容器：傳統通勝牌面 -->
+    <div class="max-w-5xl mx-auto almanac-border rounded-sm overflow-hidden">
+
+        <!-- 頂部紅頭釘裝欄（仿香港傳統撕頁日曆鐵片頂部） -->
+        <header class="calendar-header-binding text-tsPaper px-3 py-3 sm:px-8 sm:py-4 relative">
+            <!-- 裝飾孔洞 -->
+            <div class="flex justify-between items-center max-w-md mx-auto mb-2 opacity-80">
+                <div class="w-3.5 h-3.5 sm:w-4 sm:h-4 rounded-full bg-stone-800 border-2 border-yellow-500 shadow-inner shrink-0"></div>
+                <div class="text-[11px] sm:text-xs tracking-[0.2em] sm:tracking-[0.3em] text-yellow-200 font-sansTC text-center truncate px-2">香港廣經堂通勝曆法・吉日倒數寶鑑</div>
+                <div class="w-3.5 h-3.5 sm:w-4 sm:h-4 rounded-full bg-stone-800 border-2 border-yellow-500 shadow-inner shrink-0"></div>
+            </div>
+
+            <div class="flex flex-col sm:flex-row items-center justify-between gap-2 border-t border-red-400/40 pt-2">
+                <div class="flex items-center gap-2 sm:gap-3">
+                    <span class="bg-yellow-500 text-red-950 font-black px-2 py-0.5 sm:px-2.5 sm:py-1 rounded text-xs sm:text-sm tracking-widest shadow shrink-0">港曆正宗</span>
+                    <h1 class="text-xl sm:text-3xl font-black tracking-wider sm:tracking-widest text-yellow-50 drop-shadow text-center">
+                        通勝尚餘日子計算機
+                    </h1>
+                </div>
+                <div id="todayHeaderBadge" class="text-xs sm:text-sm text-yellow-100 font-sansTC bg-red-950/60 px-2.5 py-1 sm:px-3 sm:py-1.5 rounded border border-yellow-500/40 text-center w-full sm:w-auto">
+                    <!-- JS 動態填入今日公曆與歲次 -->
+                </div>
+            </div>
+        </header>
+
+        <!-- 主體內容區 -->
+        <div class="p-2.5 sm:p-6 md:p-8 space-y-5">
+
+            <!-- 第一部分：核心大字倒數顯示牌 + 兩側真實通勝黃曆吉凶（仿撕頁日曆正中央） -->
+            <section class="border-2 border-tsRed bg-gradient-to-b from-tsPaper to-tsPaperDark relative rounded-sm overflow-hidden shadow-sm">
+                <!-- 頂部歲次節氣裝飾條 -->
+                <div class="bg-red-50 border-b-2 border-tsRed px-3 sm:px-4 py-2 flex flex-wrap justify-between items-center gap-2 text-xs sm:text-sm text-tsDarkRed font-bold">
+                    <div class="flex items-center gap-1.5 sm:gap-2">
+                        <i class="fa-solid fa-compass text-tsRed"></i>
+                        <span id="rangeSummaryText" class="break-all sm:break-normal">起止區間載入中...</span>
+                    </div>
+                    <div class="flex items-center gap-2 ml-auto">
+                        <span id="almanacLunarHeaderBadge" class="text-xs font-sansTC bg-amber-100 border border-amber-600/50 text-amber-950 px-2 py-0.5 rounded font-bold">
+                            農曆載入中
+                        </span>
+                        <span class="chinese-seal-filled text-xs hidden sm:inline-block">通勝正宗</span>
+                    </div>
+                </div>
+
+                <!-- 中央三欄通勝格局：左欄【开始日/今日宜忌吉神】、中央【超大尚餘日數】、右欄【目標日宜忌吉凶沖煞】 -->
+                <div class="grid grid-cols-1 lg:grid-cols-12">
+
+                    <!-- 左側：真實黃曆（開始日／今日宜忌與建除十二神） -->
+                    <div class="lg:col-span-3 border-b-2 lg:border-b-0 lg:border-r-2 border-tsRed p-3 sm:p-4 bg-red-50/30 flex flex-col justify-between">
+                        <div>
+                            <div class="flex items-center justify-between border-b border-tsRed/40 pb-1.5 mb-2">
+                                <span class="text-xs font-black text-tsDarkRed tracking-wider flex items-center gap-1">
+                                    <span class="w-2 h-2 rounded-full bg-tsRed inline-block"></span>
+                                    <span id="leftAlmanacTitle">開始日黃曆</span>
+                                </span>
+                                <span id="leftAlmanacGanZhi" class="text-[11px] font-sansTC font-bold text-amber-900 bg-amber-100/80 px-1.5 py-0.5 rounded">
+                                    --年 --月 --日
+                                </span>
+                            </div>
+
+                            <!-- 農曆與值神、建除十二神、星宿 -->
+                            <div id="leftAlmanacMeta" class="text-xs text-tsInk font-bold mb-2.5 space-y-1 font-sansTC bg-tsPaper p-2 rounded border border-tsGold/40">
+                                <!-- JS 動態填入真實農曆、十二建除、值神 -->
+                            </div>
+
+                            <!-- 宜 / 忌 列表 -->
+                            <div class="grid grid-cols-2 lg:grid-cols-1 gap-2 font-sansTC">
+                                <div class="bg-emerald-50/90 border border-emerald-700/30 p-2 rounded">
+                                    <div class="flex items-center gap-1.5 mb-1">
+                                        <span class="w-5 h-5 rounded-full bg-tsGreen text-white text-xs font-black flex items-center justify-center shrink-0">宜</span>
+                                        <span class="text-[11px] text-emerald-900 font-bold">今日吉事宜行</span>
+                                    </div>
+                                    <p id="leftAlmanacYi" class="text-xs text-tsGreen font-medium leading-relaxed">
+                                        載入中...
+                                    </p>
+                                </div>
+
+                                <div class="bg-red-50/90 border border-tsRed/30 p-2 rounded">
+                                    <div class="flex items-center gap-1.5 mb-1">
+                                        <span class="w-5 h-5 rounded-full bg-tsRed text-white text-xs font-black flex items-center justify-center shrink-0">忌</span>
+                                        <span class="text-[11px] text-tsDarkRed font-bold">諸事不宜慎行</span>
+                                    </div>
+                                    <p id="leftAlmanacJi" class="text-xs text-tsRed font-medium leading-relaxed">
+                                        載入中...
+                                    </p>
+                                </div>
+                            </div>
+                        </div>
+
+                        <div id="leftAlmanacFooter" class="mt-2.5 pt-2 border-t border-dashed border-tsRed/30 text-[11px] font-sansTC text-stone-600 flex items-center justify-between">
+                            <!-- 沖煞與吉神方位 -->
+                        </div>
+                    </div>
+
+                    <!-- 中央：超大尚餘日子數字 -->
+                    <div class="lg:col-span-6 p-4 sm:p-6 md:p-8 flex flex-col items-center justify-center text-center relative">
+                        <!-- 背景淡水印 -->
+                        <div class="absolute inset-0 flex items-center justify-center pointer-events-none opacity-[0.04] select-none overflow-hidden">
+                            <span class="text-8xl sm:text-9xl font-black text-tsRed">吉</span>
+                        </div>
+
+                        <div class="text-sm sm:text-base font-bold text-tsDarkRed tracking-[0.15em] sm:tracking-[0.25em] mb-1 flex items-center justify-center gap-1.5 sm:gap-2">
+                            <span>━━</span>
+                            <span id="mainCounterLabel">距離目標尚餘</span>
+                            <span>━━</span>
+                        </div>
+
+                        <!-- 超大日曆數字 -->
+                        <div class="my-2 flex items-baseline justify-center gap-2">
+                            <span id="remainingDaysBig" class="big-calendar-num text-7xl sm:text-8xl md:text-9xl font-black text-tsRed">
+                                0
+                            </span>
+                            <span class="text-2xl sm:text-3xl font-black text-tsInk">日</span>
+                        </div>
+
+                        <p id="pastDateWarning" class="hidden text-xs sm:text-sm bg-amber-100 text-amber-900 border border-amber-400 px-3 py-1 rounded mt-1 font-sansTC">
+                            <i class="fa-solid fa-triangle-exclamation mr-1"></i> 目標日期早於開始日期，已為您自動反轉計算區間日數。
+                        </p>
+
+                        <!-- 四格細分統計列 -->
+                        <div class="w-full grid grid-cols-2 sm:grid-cols-4 gap-2 mt-4 pt-4 border-t-2 border-dashed border-tsRed/40 font-sansTC">
+                            <div class="bg-white/80 border border-tsRed/30 p-2 rounded text-center">
+                                <div class="text-[11px] sm:text-xs text-stone-500">日曆總跨度</div>
+                                <div class="text-base sm:text-xl font-bold text-tsInk mt-0.5"><span id="statTotalSpan">0</span> <span class="text-xs font-normal">日</span></div>
+                            </div>
+                            <div class="bg-emerald-50/90 border border-emerald-700/30 p-2 rounded text-center">
+                                <div class="text-[11px] sm:text-xs text-emerald-800">計入平日(一至五)</div>
+                                <div class="text-base sm:text-xl font-bold text-tsGreen mt-0.5"><span id="statWeekdays">0</span> <span class="text-xs font-normal">日</span></div>
+                            </div>
+                            <div class="bg-amber-50/90 border border-amber-700/30 p-2 rounded text-center">
+                                <div class="text-[11px] sm:text-xs text-amber-900">計入週六(含長週)</div>
+                                <div class="text-base sm:text-xl font-bold text-amber-800 mt-0.5"><span id="statCountedSats">0</span> <span class="text-xs font-normal">日</span></div>
+                            </div>
+                            <div class="bg-red-50/90 border border-tsRed/30 p-2 rounded text-center">
+                                <div class="text-[11px] sm:text-xs text-tsRed">已扣除假期/週末</div>
+                                <div class="text-base sm:text-xl font-bold text-tsRed mt-0.5"><span id="statExcluded">0</span> <span class="text-xs font-normal">日</span></div>
+                            </div>
+                        </div>
+
+                        <!-- 扣除明細標籤 -->
+                        <div id="exclusionBreakdown" class="mt-3 flex flex-wrap items-center justify-center gap-1.5 sm:gap-2 text-xs font-sansTC text-stone-600">
+                            <!-- JS 動態更新 -->
+                        </div>
+                    </div>
+
+                    <!-- 右側：真實黃曆（目標日宜忌、吉神宜趨、凶煞宜忌） -->
+                    <div class="lg:col-span-3 border-t-2 lg:border-t-0 lg:border-l-2 border-tsRed p-3 sm:p-4 bg-red-50/30 flex flex-col justify-between">
+                        <div>
+                            <div class="flex items-center justify-between border-b border-tsRed/40 pb-1.5 mb-2">
+                                <span class="text-xs font-black text-tsGreen tracking-wider flex items-center gap-1">
+                                    <span class="w-2 h-2 rounded-full bg-tsGreen inline-block"></span>
+                                    <span id="rightAlmanacTitle">目標日黃曆</span>
+                                </span>
+                                <span id="rightAlmanacGanZhi" class="text-[11px] font-sansTC font-bold text-amber-900 bg-amber-100/80 px-1.5 py-0.5 rounded">
+                                    --年 --月 --日
+                                </span>
+                            </div>
+
+                            <!-- 農曆與值神、建除十二神、星宿 -->
+                            <div id="rightAlmanacMeta" class="text-xs text-tsInk font-bold mb-2.5 space-y-1 font-sansTC bg-tsPaper p-2 rounded border border-tsGold/40">
+                                <!-- JS 動態填入目標日真實農曆、十二建除、值神 -->
+                            </div>
+
+                            <!-- 目標日 宜 / 忌 列表 -->
+                            <div class="grid grid-cols-2 lg:grid-cols-1 gap-2 font-sansTC">
+                                <div class="bg-emerald-50/90 border border-emerald-700/30 p-2 rounded">
+                                    <div class="flex items-center gap-1.5 mb-1">
+                                        <span class="w-5 h-5 rounded-full bg-tsGreen text-white text-xs font-black flex items-center justify-center shrink-0">宜</span>
+                                        <span class="text-[11px] text-emerald-900 font-bold">目標日吉事宜行</span>
+                                    </div>
+                                    <p id="rightAlmanacYi" class="text-xs text-tsGreen font-medium leading-relaxed">
+                                        載入中...
+                                    </p>
+                                </div>
+
+                                <div class="bg-red-50/90 border border-tsRed/30 p-2 rounded">
+                                    <div class="flex items-center gap-1.5 mb-1">
+                                        <span class="w-5 h-5 rounded-full bg-tsRed text-white text-xs font-black flex items-center justify-center shrink-0">忌</span>
+                                        <span class="text-[11px] text-tsDarkRed font-bold">目標日諸事不宜</span>
+                                    </div>
+                                    <p id="rightAlmanacJi" class="text-xs text-tsRed font-medium leading-relaxed">
+                                        載入中...
+                                    </p>
+                                </div>
+                            </div>
+                        </div>
+
+                        <div id="rightAlmanacFooter" class="mt-2.5 pt-2 border-t border-dashed border-tsRed/30 text-[11px] font-sansTC text-stone-600 flex items-center justify-between">
+                            <!-- 沖煞與彭祖百忌 -->
+                        </div>
+                    </div>
+                </div>
+            </section>
+
+            <!-- 第二部分：AI 通勝批命 — 心靈雞湯／毒雞湯語錄欄（移至距離目標窗口正下方、設定區上方） -->
+            <section class="border-2 border-tsRed bg-gradient-to-r from-red-50/70 via-tsPaper to-red-50/70 p-3.5 sm:p-5 rounded-sm relative shadow-sm">
+                <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-2.5 border-b-2 border-tsRed/40 pb-2.5 mb-3">
+                    <div class="flex items-center gap-2.5">
+                        <span class="chinese-seal text-xs sm:text-sm shrink-0">今日批命</span>
+                        <h2 class="text-base sm:text-lg font-black text-tsDarkRed">通勝倒數錦囊・心靈雞湯／毒雞湯（內建百籤）</h2>
+                    </div>
+
+                    <!-- 切換雞湯類型與即時生成按鈕（移除獨立AI按鈕，點擊直接即時生成不重覆） -->
+                    <div class="flex flex-wrap items-center gap-2 font-sansTC">
+                        <div class="inline-flex rounded border border-tsRed overflow-hidden bg-white">
+                            <button type="button" id="btnSoulMode" onclick="switchSoupMode('soul')"
+                                class="px-2.5 sm:px-3 py-1.5 text-xs font-bold bg-tsRed text-white transition flex items-center gap-1">
+                                <i class="fa-solid fa-sun"></i> 心靈雞湯
+                            </button>
+                            <button type="button" id="btnToxicMode" onclick="switchSoupMode('toxic')"
+                                class="px-2.5 sm:px-3 py-1.5 text-xs font-bold bg-white text-tsRed hover:bg-red-50 transition flex items-center gap-1">
+                                <i class="fa-solid fa-skull-crossbones"></i> 毒雞湯
+                            </button>
+                        </div>
+
+                        <button type="button" id="btnGenerateQuote" onclick="generateDynamicQuote()"
+                            class="px-3 py-1.5 text-xs font-bold bg-amber-600 hover:bg-amber-700 text-white rounded transition flex items-center gap-1.5 shadow-sm">
+                            <i id="btnGenerateIcon" class="fa-solid fa-rotate"></i> 換一句
+                        </button>
+                    </div>
+                </div>
+
+                <!-- 語錄展示區 -->
+                <div class="bg-tsPaper border border-tsGold/60 p-3.5 sm:p-4 rounded relative min-h-[68px] flex items-center justify-between gap-3">
+                    <div class="flex items-start gap-2.5 sm:gap-3 w-full">
+                        <i id="quoteIcon" class="fa-solid fa-quote-left text-xl sm:text-2xl text-tsRed/40 mt-0.5 shrink-0"></i>
+                        <div class="flex-1">
+                            <p id="quoteText" class="text-sm sm:text-lg font-bold text-tsInk leading-relaxed">
+                                正在為閣下批算今日倒數箴言...
+                            </p>
+                            <div class="mt-1.5 flex flex-wrap items-center justify-between gap-1 text-xs font-sansTC text-stone-500">
+                                <span id="quoteTag" class="text-tsDarkRed font-medium">【通勝心靈雞湯】</span>
+                                <span id="quoteSourceStatus">內建百籤庫即時抽籤</span>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </section>
+
+            <!-- 第三部分：日期選擇與計算規則設定面板 -->
+            <section class="grid grid-cols-1 lg:grid-cols-12 gap-5">
+                
+                <!-- 左欄：自定義起止日期（支援「今天」自動識別選項及自動儲存） -->
+                <div class="lg:col-span-5 border-2 border-tsRed bg-tsPaper p-4 sm:p-5 rounded-sm relative">
+                    <div class="flex items-center justify-between border-b-2 border-tsRed pb-2 mb-4">
+                        <h2 class="text-base sm:text-lg font-black text-tsRed flex items-center gap-2">
+                            <span class="chinese-seal-filled text-xs">壹</span>
+                            <span>擇日設定（點選日期）</span>
+                        </h2>
+                    </div>
+
+                    <div class="space-y-4 font-sansTC">
+                        <!-- 開始日期 + 「今天」自動識別設定 -->
+                        <div class="bg-tsPaperDark/70 p-3.5 rounded border border-tsGold/50">
+                            <div class="flex flex-wrap justify-between items-center gap-2 mb-2">
+                                <label for="startDateInput" class="text-sm font-bold text-tsInk flex items-center gap-1.5">
+                                    <i class="fa-regular fa-calendar-check text-tsRed"></i>
+                                    開始日期
+                                </label>
+                                <!-- 「今天」自動識別勾選與快捷鍵 -->
+                                <div class="flex items-center gap-2">
+                                    <label class="inline-flex items-center gap-1.5 text-xs font-bold text-tsRed bg-red-50 border border-tsRed/40 px-2 py-1 rounded cursor-pointer select-none" title="勾選後每次打開網頁都會自動識別並將開始日更新為當天日期">
+                                        <input type="checkbox" id="autoTodayStartCheck" checked class="w-3.5 h-3.5 accent-tsRed rounded cursor-pointer">
+                                        <span>今天（自動設為今天）</span>
+                                    </label>
+                                </div>
+                            </div>
+                            <div class="relative">
+                                <input type="date" id="startDateInput" min="2020-01-01" max="2027-12-31"
+                                    class="w-full bg-white border-2 border-tsRed/60 rounded px-3 py-2 text-base font-bold text-tsInk focus:outline-none focus:border-tsRed cursor-pointer"
+                                    onclick="this.showPicker && this.showPicker()">
+                            </div>
+                            <div id="startDateLunarInfo" class="text-xs text-stone-600 mt-1.5 flex flex-wrap items-center justify-between gap-1">
+                                <!-- 顯示星期與公眾假期狀態 -->
+                            </div>
+                        </div>
+
+                        <!-- 目標日期 -->
+                        <div class="bg-tsPaperDark/70 p-3.5 rounded border border-tsGold/50">
+                            <div class="flex justify-between items-center mb-1.5">
+                                <label for="endDateInput" class="text-sm font-bold text-tsInk flex items-center gap-1.5">
+                                    <i class="fa-solid fa-flag-checkered text-tsRed"></i>
+                                    目標日期（結束日）
+                                </label>
+                                <span class="text-xs text-tsRed font-medium">點擊下方框或快捷鍵</span>
+                            </div>
+                            <div class="relative">
+                                <input type="date" id="endDateInput" min="2020-01-01" max="2027-12-31"
+                                    class="w-full bg-white border-2 border-tsRed/60 rounded px-3 py-2 text-base font-bold text-tsInk focus:outline-none focus:border-tsRed cursor-pointer"
+                                    onclick="this.showPicker && this.showPicker()">
+                            </div>
+                            <div id="endDateLunarInfo" class="text-xs text-stone-600 mt-1.5 flex flex-wrap items-center justify-between gap-1">
+                                <!-- 顯示星期與公眾假期狀態 -->
+                            </div>
+
+                            <!-- 目標日期快捷選擇按鈕 -->
+                            <div class="mt-3 pt-2.5 border-t border-stone-300">
+                                <div class="text-xs text-stone-500 mb-1.5 font-medium">快速設定目標日：</div>
+                                <div class="flex flex-wrap gap-1.5">
+                                    <button type="button" onclick="quickAddDays(7)" class="text-xs bg-white hover:bg-red-50 text-tsInk border border-stone-400 px-2.5 py-1 rounded font-medium transition">+7日</button>
+                                    <button type="button" onclick="quickAddDays(14)" class="text-xs bg-white hover:bg-red-50 text-tsInk border border-stone-400 px-2.5 py-1 rounded font-medium transition">+14日</button>
+                                    <button type="button" onclick="quickAddMonths(1)" class="text-xs bg-white hover:bg-red-50 text-tsInk border border-stone-400 px-2.5 py-1 rounded font-medium transition">+1個月</button>
+                                    <button type="button" onclick="quickAddMonths(3)" class="text-xs bg-white hover:bg-red-50 text-tsInk border border-stone-400 px-2.5 py-1 rounded font-medium transition">+3個月</button>
+                                    <button type="button" onclick="quickSetEndOfMonth()" class="text-xs bg-white hover:bg-red-50 text-tsInk border border-stone-400 px-2.5 py-1 rounded font-medium transition">本月尾</button>
+                                    <button type="button" onclick="quickSetDate('2026-12-31')" class="text-xs bg-amber-50 hover:bg-amber-100 text-amber-900 border border-amber-500 px-2.5 py-1 rounded font-medium transition">2026年尾</button>
+                                    <button type="button" onclick="quickSetDate('2027-02-06')" class="text-xs bg-red-50 hover:bg-red-100 text-tsRed border border-tsRed/50 px-2.5 py-1 rounded font-medium transition">2027農曆新年</button>
+                                    <button type="button" onclick="quickSetDate('2027-12-31')" class="text-xs bg-amber-50 hover:bg-amber-100 text-amber-900 border border-amber-500 px-2.5 py-1 rounded font-medium transition">2027年尾</button>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- 右欄：排除條件與「自動長短週」設定 -->
+                <div class="lg:col-span-7 border-2 border-tsRed bg-tsPaper p-4 sm:p-5 rounded-sm flex flex-col justify-between">
+                    <div>
+                        <div class="flex flex-wrap items-center justify-between gap-2 border-b-2 border-tsRed pb-2 mb-4">
+                            <h2 class="text-base sm:text-lg font-black text-tsRed flex items-center gap-2">
+                                <span class="chinese-seal-filled text-xs">貳</span>
+                                <span>計算規則、香港公眾假期與長短週</span>
+                            </h2>
+                            <span class="text-xs font-sansTC bg-red-100 text-tsRed px-2 py-0.5 rounded font-bold">2020–2027 憲報假期庫</span>
+                        </div>
+
+                        <div class="space-y-3.5 font-sansTC">
+                            <!-- 基本勾選開關列 -->
+                            <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                                <!-- 1. 包括開始日期 -->
+                                <label class="flex items-start gap-3 p-3 rounded border-2 border-stone-300 bg-white hover:border-tsRed/60 cursor-pointer transition select-none">
+                                    <input type="checkbox" id="includeStartCheck" checked class="mt-1 w-5 h-5 accent-tsRed rounded cursor-pointer">
+                                    <div>
+                                        <div class="font-bold text-sm text-tsInk">包括開始日期</div>
+                                        <div class="text-xs text-stone-500 mt-0.5">連同開始日當天一併計入區間</div>
+                                    </div>
+                                </label>
+
+                                <!-- 2. 排除星期日 -->
+                                <label class="flex items-start gap-3 p-3 rounded border-2 border-stone-300 bg-white hover:border-tsRed/60 cursor-pointer transition select-none">
+                                    <input type="checkbox" id="excludeSunCheck" checked class="mt-1 w-5 h-5 accent-tsRed rounded cursor-pointer">
+                                    <div>
+                                        <div class="font-bold text-sm text-tsRed">排除星期日（紅日）</div>
+                                        <div class="text-xs text-stone-500 mt-0.5">自動扣除區間內所有星期日</div>
+                                    </div>
+                                </label>
+                            </div>
+
+                            <!-- 3. 排除香港公眾假期 -->
+                            <label class="flex items-start gap-3 p-3 rounded border-2 border-tsRed/40 bg-red-50/40 hover:border-tsRed cursor-pointer transition select-none">
+                                <input type="checkbox" id="excludeHolidayCheck" checked class="mt-1 w-5 h-5 accent-tsRed rounded cursor-pointer">
+                                <div class="flex-1">
+                                    <div class="flex flex-wrap items-center justify-between gap-1">
+                                        <span class="font-bold text-sm text-tsRed">排除香港公眾假期（2020–2027年）</span>
+                                        <button type="button" onclick="openHolidayModal(event)" class="text-xs underline text-tsDarkRed hover:text-tsRed font-bold">
+                                            <i class="fa-solid fa-book-open mr-1"></i>查閱 2020-2027 假期表
+                                        </button>
+                                    </div>
+                                    <div class="text-xs text-stone-600 mt-0.5">自動扣除香港政府憲報公佈之17天公眾假期（紅日）</div>
+                                </div>
+                            </label>
+
+                            <!-- 4. 星期六及「自動長短週（大小週）」設定區 -->
+                            <div class="border-2 border-tsGold bg-tsPaperDark/60 p-3.5 rounded">
+                                <div class="font-bold text-sm text-tsInk mb-2.5 flex items-center justify-between">
+                                    <span><i class="fa-solid fa-calendar-week text-tsRed mr-1.5"></i>星期六及「長短週（大小週）」模式：</span>
+                                </div>
+
+                                <div class="grid grid-cols-1 sm:grid-cols-3 gap-2">
+                                    <!-- 模式 A：不排除星期六 -->
+                                    <label class="flex items-center gap-2 p-2.5 rounded border bg-white cursor-pointer hover:border-tsRed transition">
+                                        <input type="radio" name="satMode" value="none" class="w-4 h-4 accent-tsRed">
+                                        <div class="text-xs sm:text-sm">
+                                            <div class="font-bold text-tsInk">不排除星期六</div>
+                                            <div class="text-[11px] text-stone-500">六天工作 / 全計</div>
+                                        </div>
+                                    </label>
+
+                                    <!-- 模式 B：排除所有星期六 -->
+                                    <label class="flex items-center gap-2 p-2.5 rounded border bg-white cursor-pointer hover:border-tsRed transition">
+                                        <input type="radio" name="satMode" value="all" checked class="w-4 h-4 accent-tsRed">
+                                        <div class="text-xs sm:text-sm">
+                                            <div class="font-bold text-tsInk">排除所有星期六</div>
+                                            <div class="text-[11px] text-stone-500">五天工作制</div>
+                                        </div>
+                                    </label>
+
+                                    <!-- 模式 C：自動長短週（大小週） -->
+                                    <label class="flex items-center gap-2 p-2.5 rounded border-2 border-amber-600/60 bg-amber-50/70 cursor-pointer hover:border-tsRed transition">
+                                        <input type="radio" name="satMode" value="alternate" class="w-4 h-4 accent-tsRed">
+                                        <div class="text-xs sm:text-sm">
+                                            <div class="font-bold text-amber-950">自動長短週(大小週)</div>
+                                            <div class="text-[11px] text-amber-800">隔週返星期六</div>
+                                        </div>
+                                    </label>
+                                </div>
+
+                                <!-- 當選擇「自動長短週」時展開的基準星期六選擇器 -->
+                                <div id="alternateSatPanel" class="hidden mt-3 pt-3 border-t border-tsGold/60 bg-amber-50/90 p-3 rounded">
+                                    <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-2">
+                                        <div>
+                                            <label for="refLongSatInput" class="text-xs sm:text-sm font-bold text-amber-950 flex items-center gap-1.5">
+                                                <i class="fa-solid fa-briefcase text-tsRed"></i>
+                                                請選擇最接近一次「長週（要返工）」的星期六：
+                                            </label>
+                                            <p class="text-xs text-stone-600 mt-0.5">
+                                                系統會以此日為「長週」基準，自動每隔一週將「短週星期六」排除，只計入「長週星期六」。
+                                            </p>
+                                        </div>
+                                        <div class="flex items-center gap-1.5">
+                                            <input type="date" id="refLongSatInput" min="2020-01-01" max="2027-12-31"
+                                                class="bg-white border-2 border-amber-700 rounded px-2.5 py-1.5 text-sm font-bold text-tsInk cursor-pointer w-full sm:w-auto"
+                                                onclick="this.showPicker && this.showPicker()">
+                                        </div>
+                                    </div>
+                                    <!-- 快捷選擇附近星期六按鈕 -->
+                                    <div class="mt-2.5 flex flex-wrap items-center gap-1.5">
+                                        <span class="text-xs text-amber-900 font-medium">快速點選星期六：</span>
+                                        <div id="nearbySaturdaysBtns" class="flex flex-wrap gap-1.5">
+                                            <!-- JS 動態生成最近4個星期六按鈕 -->
+                                        </div>
+                                    </div>
+                                    <div id="refSatFeedback" class="text-xs text-tsRed font-medium mt-1.5"></div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </section>
+
+            <!-- 第四部分：區間互動月曆（可收起／展開，支援點擊手動勾選或排除自定義日期） -->
+            <section class="border-2 border-tsRed bg-tsPaper p-3.5 sm:p-6 rounded-sm">
+                <div class="flex flex-col md:flex-row md:items-center justify-between gap-3">
+                    <div class="cursor-pointer select-none" onclick="toggleCalendarCollapse()">
+                        <h2 class="text-base sm:text-xl font-black text-tsRed flex flex-wrap items-center gap-2">
+                            <span class="chinese-seal-filled text-xs">叁</span>
+                            <span>區間互動月曆（點擊格子手動勾選或排除該日）</span>
+                            <span id="calendarSummaryPill" class="text-xs font-sansTC bg-amber-100 text-amber-950 border border-amber-500 px-2 py-0.5 rounded font-bold">
+                                點擊展開／收起
+                            </span>
+                        </h2>
+                        <p class="text-xs sm:text-sm text-stone-600 font-sansTC mt-1">
+                            <i class="fa-solid fa-hand-pointer text-tsRed mr-1"></i>
+                            提示：點擊下方日曆任何一天，即可手動將該日設為<strong class="text-stone-800">「自定義排除（如請假 AL / 放假）」</strong>或<strong class="text-tsGreen">「自定義計入（如補班 / OT）」</strong>。
+                        </p>
+                    </div>
+
+                    <div class="flex items-center gap-2 self-start md:self-center shrink-0 font-sansTC">
+                        <button type="button" id="btnClearOverrides" onclick="clearAllManualOverrides()"
+                            class="hidden px-2.5 py-1.5 rounded bg-tsRed text-white hover:bg-tsDarkRed text-xs font-bold transition shadow-sm">
+                            <i class="fa-solid fa-trash-can mr-1"></i>重設手動修改 (<span id="overrideCountBadge">0</span>)
+                        </button>
+
+                        <button type="button" id="btnToggleCalendar" onclick="toggleCalendarCollapse()"
+                            class="px-3.5 py-1.5 rounded border-2 border-tsRed bg-red-50 hover:bg-tsRed hover:text-white text-tsRed text-xs sm:text-sm font-bold transition flex items-center gap-1.5 shadow-sm">
+                            <span id="toggleCalendarBtnText">收起月曆</span>
+                            <i id="toggleCalendarIcon" class="fa-solid fa-chevron-up transition-transform"></i>
+                        </button>
+                    </div>
+                </div>
+
+                <!-- 已手動修改的日期標籤清單（即使收起月曆亦清晰顯示） -->
+                <div id="manualOverridesListContainer" class="hidden mt-3 p-3 rounded bg-amber-50/90 border border-amber-500/70 font-sansTC">
+                    <div class="text-xs font-bold text-amber-950 mb-1.5 flex items-center justify-between">
+                        <span><i class="fa-solid fa-list-check mr-1"></i>已手動自定義勾選／排除的日期（點擊標籤可取消）：</span>
+                    </div>
+                    <div id="manualOverridesBadges" class="flex flex-wrap gap-1.5">
+                        <!-- JS 動態插入手動修改標籤 -->
+                    </div>
+                </div>
+
+                <!-- 可收起的月曆主體區 -->
+                <div id="collapsibleCalendarBody" class="mt-4 pt-3 border-t-2 border-tsRed/40">
+                    <!-- 圖例列 -->
+                    <div class="flex flex-wrap items-center gap-2 font-sansTC text-xs mb-4">
+                        <span class="inline-flex items-center gap-1 px-2 py-1 rounded bg-emerald-50 border border-emerald-600 text-tsGreen font-bold">
+                            <span class="w-2.5 h-2.5 rounded-full bg-tsGreen"></span> 計入日子
+                        </span>
+                        <span class="inline-flex items-center gap-1 px-2 py-1 rounded bg-stone-200 border border-stone-400 text-stone-600">
+                            <span class="w-2.5 h-2.5 rounded-full bg-stone-500"></span> 規則已排除
+                        </span>
+                        <span class="inline-flex items-center gap-1 px-2 py-1 rounded bg-amber-100 border border-amber-600 text-amber-900 font-bold">
+                            <i class="fa-solid fa-pen-nib text-[10px]"></i> 手動自定義
+                        </span>
+                    </div>
+
+                    <!-- 互動月曆容器 -->
+                    <div id="calendarMonthsContainer" class="space-y-6">
+                        <!-- JS 動態渲染區間內的每個月曆 -->
+                    </div>
+                </div>
+            </section>
+
+            <!-- 第五部分：最下方自動紀錄狀態與還原預設設定列 -->
+            <section class="border-2 border-tsGold/70 bg-tsPaperDark/90 px-4 py-3 rounded-sm flex flex-col sm:flex-row items-center justify-between gap-2 text-xs sm:text-sm font-sansTC text-stone-700 shadow-sm">
+                <div class="flex items-center gap-2">
+                    <i class="fa-solid fa-floppy-disk text-tsGreen text-base"></i>
+                    <span id="autoSaveStatusText" class="font-medium">系統已自動紀錄您的所有設定（下次開啟自動載入）</span>
+                </div>
+                <button type="button" onclick="resetAllSavedSettings()"
+                    class="px-3 py-1 rounded bg-white hover:bg-red-50 text-tsRed border border-tsRed/50 font-bold transition shadow-sm shrink-0">
+                    <i class="fa-solid fa-rotate-left mr-1"></i>還原預設設定
+                </button>
+            </section>
+
+        </div>
+
+        <!-- 底部通勝版權與說明欄 -->
+        <footer class="bg-tsDarkRed text-yellow-100/90 text-xs font-sansTC px-4 py-3 flex flex-col sm:flex-row items-center justify-between gap-2 border-t-2 border-tsGold text-center sm:text-left">
+            <div>
+                <i class="fa-solid fa-scroll mr-1 text-yellow-400"></i>
+                香港公眾假期資料依據香港政府憲報（2020–2027年公眾假期，每年17日）編纂。
+            </div>
+            <div class="font-bold text-yellow-200">
+                吉日良辰・倒數專用通勝
+            </div>
+        </footer>
+    </div>
+
+    <!-- 2020-2027 香港公眾假期總覽彈出視窗 (Modal) -->
+    <div id="holidayModal" class="fixed inset-0 bg-black/60 z-50 hidden items-center justify-center p-4 font-sansTC">
+        <div class="bg-tsPaper border-4 border-tsRed max-w-3xl w-full max-h-[85vh] rounded-sm flex flex-col shadow-2xl overflow-hidden">
+            <div class="bg-tsRed text-white px-5 py-3 flex items-center justify-between">
+                <h3 class="text-lg font-bold tracking-wider flex items-center gap-2 font-serifTC">
+                    <i class="fa-solid fa-calendar-day"></i>
+                    2020–2027年 香港公眾假期一覽表（香港政府憲報）
+                </h3>
+                <button type="button" onclick="closeHolidayModal()" class="text-white hover:text-yellow-200 text-xl px-2">
+                    <i class="fa-solid fa-xmark"></i>
+                </button>
+            </div>
+            <div class="p-4 bg-tsPaperDark border-b border-stone-300 flex flex-wrap items-center justify-between gap-2">
+                <div class="text-xs text-stone-700">選擇年份查閱該年全部 17 天香港法定公眾假期（紅日）：</div>
+                <div id="modalYearTabs" class="flex flex-wrap gap-1.5">
+                    <!-- JS 生成 2020-2027 年份按鈕 -->
+                </div>
+            </div>
+            <div id="modalHolidayList" class="p-5 overflow-y-auto grid grid-cols-1 sm:grid-cols-2 gap-2.5 text-sm">
+                <!-- JS 顯示所選年份假期 -->
+            </div>
+            <div class="bg-stone-100 px-5 py-3 border-t border-stone-300 text-right">
+                <button type="button" onclick="closeHolidayModal()" class="bg-tsRed text-white px-4 py-1.5 rounded text-sm font-bold hover:bg-tsDarkRed">
+                    關閉視窗
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        /*************************************************************************
+         * 1. 香港公眾假期資料庫 (2020 - 2027年 完整香港政府憲報 General Holidays)
+         *************************************************************************/
+        const HK_PUBLIC_HOLIDAYS = {
+            // === 2020年 ===
+            "2020-01-01": "元旦",
+            "2020-01-25": "農曆年初一",
+            "2020-01-27": "農曆年初三",
+            "2020-01-28": "農曆年初四",
+            "2020-04-04": "清明節",
+            "2020-04-10": "耶穌受難節",
+            "2020-04-11": "耶穌受難節翌日",
+            "2020-04-13": "復活節星期一",
+            "2020-04-30": "佛誕",
+            "2020-05-01": "勞動節",
+            "2020-06-25": "端午節",
+            "2020-07-01": "香港特別行政區成立紀念日",
+            "2020-10-01": "國慶日",
+            "2020-10-02": "中秋節翌日",
+            "2020-10-26": "重陽節翌日",
+            "2020-12-25": "聖誕節",
+            "2020-12-26": "聖誕節後第一個周日",
+
+            // === 2021年 ===
+            "2021-01-01": "元旦",
+            "2021-02-12": "農曆年初一",
+            "2021-02-13": "農曆年初二",
+            "2021-02-15": "農曆年初四",
+            "2021-04-02": "耶穌受難節",
+            "2021-04-03": "耶穌受難節翌日",
+            "2021-04-05": "清明節翌日",
+            "2021-04-06": "復活節星期一翌日",
+            "2021-05-01": "勞動節",
+            "2021-05-19": "佛誕",
+            "2021-06-14": "端午節",
+            "2021-07-01": "香港特別行政區成立紀念日",
+            "2021-09-22": "中秋節翌日",
+            "2021-10-01": "國慶日",
+            "2021-10-14": "重陽節",
+            "2021-12-25": "聖誕節",
+            "2021-12-27": "聖誕節後第一個周日",
+
+            // === 2022年 ===
+            "2022-01-01": "元旦",
+            "2022-02-01": "農曆年初一",
+            "2022-02-02": "農曆年初二",
+            "2022-02-03": "農曆年初三",
+            "2022-04-05": "清明節",
+            "2022-04-15": "耶穌受難節",
+            "2022-04-16": "耶穌受難節翌日",
+            "2022-04-18": "復活節星期一",
+            "2022-05-02": "勞動節翌日",
+            "2022-05-09": "佛誕翌日",
+            "2022-06-03": "端午節",
+            "2022-07-01": "香港特別行政區成立紀念日",
+            "2022-09-12": "中秋節第二日",
+            "2022-10-01": "國慶日",
+            "2022-10-04": "重陽節",
+            "2022-12-26": "聖誕節後第一個周日",
+            "2022-12-27": "聖誕節後第二個周日",
+
+            // === 2023年 ===
+            "2023-01-02": "元旦翌日",
+            "2023-01-23": "農曆年初二",
+            "2023-01-24": "農曆年初三",
+            "2023-01-25": "農曆年初四",
+            "2023-04-05": "清明節",
+            "2023-04-07": "耶穌受難節",
+            "2023-04-08": "耶穌受難節翌日",
+            "2023-04-10": "復活節星期一",
+            "2023-05-01": "勞動節",
+            "2023-05-26": "佛誕",
+            "2023-06-22": "端午節",
+            "2023-07-01": "香港特別行政區成立紀念日",
+            "2023-09-30": "中秋節翌日",
+            "2023-10-02": "國慶日翌日",
+            "2023-10-23": "重陽節",
+            "2023-12-25": "聖誕節",
+            "2023-12-26": "聖誕節後第一個周日",
+
+            // === 2024年 ===
+            "2024-01-01": "元旦",
+            "2024-02-10": "農曆年初一",
+            "2024-02-12": "農曆年初三",
+            "2024-02-13": "農曆年初四",
+            "2024-03-29": "耶穌受難節",
+            "2024-03-30": "耶穌受難節翌日",
+            "2024-04-01": "復活節星期一",
+            "2024-04-04": "清明節",
+            "2024-05-01": "勞動節",
+            "2024-05-15": "佛誕",
+            "2024-06-10": "端午節",
+            "2024-07-01": "香港特別行政區成立紀念日",
+            "2024-09-18": "中秋節翌日",
+            "2024-10-01": "國慶日",
+            "2024-10-11": "重陽節",
+            "2024-12-25": "聖誕節",
+            "2024-12-26": "聖誕節後第一個周日",
+
+            // === 2025年 ===
+            "2025-01-01": "元旦",
+            "2025-01-29": "農曆年初一",
+            "2025-01-30": "農曆年初二",
+            "2025-01-31": "農曆年初三",
+            "2025-04-04": "清明節",
+            "2025-04-18": "耶穌受難節",
+            "2025-04-19": "耶穌受難節翌日",
+            "2025-04-21": "復活節星期一",
+            "2025-05-01": "勞動節",
+            "2025-05-05": "佛誕",
+            "2025-05-31": "端午節",
+            "2025-07-01": "香港特別行政區成立紀念日",
+            "2025-10-01": "國慶日",
+            "2025-10-07": "中秋節翌日",
+            "2025-10-29": "重陽節",
+            "2025-12-25": "聖誕節",
+            "2025-12-26": "聖誕節後第一個周日",
+
+            // === 2026年 ===
+            "2026-01-01": "元旦",
+            "2026-02-17": "農曆年初一",
+            "2026-02-18": "農曆年初二",
+            "2026-02-19": "農曆年初三",
+            "2026-04-03": "耶穌受難節",
+            "2026-04-04": "耶穌受難節翌日",
+            "2026-04-06": "清明節翌日",
+            "2026-04-07": "復活節星期一翌日",
+            "2026-05-01": "勞動節",
+            "2026-05-25": "佛誕翌日",
+            "2026-06-19": "端午節",
+            "2026-07-01": "香港特別行政區成立紀念日",
+            "2026-09-26": "中秋節翌日",
+            "2026-10-01": "國慶日",
+            "2026-10-19": "重陽節翌日",
+            "2026-12-25": "聖誕節",
+            "2026-12-26": "聖誕節後第一個周日",
+
+            // === 2027年 ===
+            "2027-01-01": "元旦",
+            "2027-02-06": "農曆年初一",
+            "2027-02-08": "農曆年初三",
+            "2027-02-09": "農曆年初四",
+            "2027-03-26": "耶穌受難節",
+            "2027-03-27": "耶穌受難節翌日",
+            "2027-03-29": "復活節星期一",
+            "2027-04-05": "清明節",
+            "2027-05-01": "勞動節",
+            "2027-05-13": "佛誕",
+            "2027-06-09": "端午節",
+            "2027-07-01": "香港特別行政區成立紀念日",
+            "2027-09-16": "中秋節翌日",
+            "2027-10-01": "國慶日",
+            "2027-10-08": "重陽節",
+            "2027-12-25": "聖誕節",
+            "2027-12-27": "聖誕節後第一個周日"
+        };
+
+        /*************************************************************************
+         * 2. 應用程式全局狀態與全方位設定自動紀錄機制（雙重持久化儲存）
+         *************************************************************************/
+        const STORAGE_KEY = 'HK_ALMANAC_COUNTDOWN_STATE_V3';
+        // 手動覆蓋狀態：key 為 'YYYY-MM-DD', value 為 'include' (計入) 或 'exclude' (排除)
+        const manualOverrides = new Map();
+        let currentSoupMode = 'soul'; // 'soul' | 'toxic'
+        let lastCalculatedRemaining = 0;
+        let isCalendarCollapsed = false;
+        let isInitializing = true; // 防止初始化期間預設值覆蓋已保存的設定
+        let lastSavedQuoteText = '';
+        let lastSavedQuoteStatus = '';
+        let quoteHistoryList = []; // 記錄最近生成過的 AI 短句，指示 AI 絕不重覆
+        const WEEKDAY_NAMES = ['日', '一', '二', '三', '四', '五', '六'];
+
+        // 統一讀寫儲存封裝（同時寫入 localStorage 及 window.name，確保在任何瀏覽器或預覽環境下刷新都能100%保留所有設定）
+        function writePersistentState(stateObj) {
+            const jsonStr = JSON.stringify(stateObj);
+            try {
+                localStorage.setItem(STORAGE_KEY, jsonStr);
+            } catch (e) {}
+            try {
+                window.name = 'HK_ALMANAC_STATE::' + jsonStr;
+            } catch (e) {}
+        }
+
+        function readPersistentState() {
+            try {
+                const rawLocal = localStorage.getItem(STORAGE_KEY);
+                if (rawLocal) return JSON.parse(rawLocal);
+            } catch (e) {}
+            try {
+                if (window.name && window.name.startsWith('HK_ALMANAC_STATE::')) {
+                    const rawWin = window.name.replace('HK_ALMANAC_STATE::', '');
+                    return JSON.parse(rawWin);
+                }
+            } catch (e) {}
+            return null;
+        }
+
+        function clearPersistentState() {
+            try {
+                localStorage.removeItem(STORAGE_KEY);
+                localStorage.removeItem('HK_ALMANAC_COUNTDOWN_STATE_V2');
+            } catch (e) {}
+            try {
+                if (window.name && window.name.startsWith('HK_ALMANAC_STATE::')) {
+                    window.name = '';
+                }
+            } catch (e) {}
+        }
+
+        /*************************************************************************
+         * 3. 日期與真實通勝黃曆處理輔助函數
+         *************************************************************************/
+        function formatDateStr(dateObj) {
+            const y = dateObj.getFullYear();
+            const m = String(dateObj.getMonth() + 1).padStart(2, '0');
+            const d = String(dateObj.getDate()).padStart(2, '0');
+            return `${y}-${m}-${d}`;
+        }
+
+        function parseDateStr(str) {
+            if (!str) return null;
+            const [y, m, d] = str.split('-').map(Number);
+            if (!y || !m || !d) return null;
+            return new Date(y, m - 1, d, 0, 0, 0, 0);
+        }
+
+        function getTodayDateObj() {
+            const now = new Date();
+            return new Date(now.getFullYear(), now.getMonth(), now.getDate(), 0, 0, 0, 0);
+        }
+
+        function addDays(dateObj, days) {
+            const d = new Date(dateObj.getFullYear(), dateObj.getMonth(), dateObj.getDate());
+            d.setDate(d.getDate() + days);
+            return d;
+        }
+
+        // 將 lunar-javascript 的簡體詞彙轉為香港傳統通勝繁體術語
+        function toTraditionalAlmanacText(str) {
+            if (!str) return '';
+            const map = {
+                '动土': '動土', '祈福': '祈福', '嫁娶': '嫁娶', '开市': '開市', '交易': '交易',
+                '立券': '立券', '挂匾': '掛匾', '纳财': '納財', '开光': '開光', '出行': '出行',
+                '进人口': '進人口', '入宅': '入宅', '移徙': '移徙', '安床': '安床', '拆卸': '拆卸',
+                '修造': '修造', '安门': '安門', '上梁': '上樑', '栽种': '栽種', '纳畜': '納畜',
+                '牧养': '牧養', '安葬': '安葬', '破土': '破土', '启钻': '啟鑽', '除服': '除服',
+                '成服': '成服', '余事勿取': '餘事勿取', '诸事不宜': '諸事不宜', '会亲友': '會親友',
+                '求医': '求醫', '治病': '治病', '词讼': '詞訟', '斋醮': '齋醮', '塑绘': '塑繪',
+                '入学': '入學', '习艺': '習藝', '纳采': '納采', '订盟': '訂盟', '祭祀': '祭祀',
+                '沐浴': '沐浴', '剃头': '剃頭', '整手足甲': '整手足甲', '扫舍': '掃舍', '解除': '解除',
+                '竖柱': '豎柱', '经络': '經絡', '酝酿': '醞釀', '造车器': '造車器', '雕刻': '雕刻',
+                '开生坟': '開生墳', '合寿木': '合壽木', '入殓': '入殮', '移柩': '移柩', '谢土': '謝土',
+                '安机械': '安機械', '造仓': '造倉', '开渠': '開渠', '穿井': '穿井', '盖屋': '蓋屋',
+                '起基': '起基', '定磉': '定磉', '放水': '放水', '针灸': '針灸', '行丧': '行喪',
+                '伐木': '伐木', '作灶': '作灶', '结网': '結網', '畋猎': '畋獵', '取渔': '取漁',
+                '纳婿': '納婿', '归宁': '歸寧', '归岫': '歸岫', '安香': '安香', '出火': '出火',
+                '进人口': '進人口', '开柱眼': '開柱眼', '修坟': '修墳', '立碑': '立碑',
+                '青龙': '青龍', '明堂': '明堂', '天刑': '天刑', '朱雀': '朱雀', '金匮': '金匱',
+                '天德': '天德', '白虎': '白虎', '玉堂': '玉堂', '天牢': '天牢', '玄武': '玄武',
+                '司命': '司命', '勾陈': '勾陳', '建': '建', '除': '除', '满': '滿', '平': '平',
+                '定': '定', '执': '執', '破': '破', '危': '危', '成': '成', '收': '收', '开': '開', '闭': '閉',
+                '龙': '龍', '鸡': '雞', '猪': '豬', '马': '馬', '羊': '羊', '猴': '猴', '狗': '狗',
+                '鼠': '鼠', '牛': '牛', '虎': '虎', '兔': '兔', '蛇': '蛇',
+                '东': '東', '南': '南', '西': '西', '北': '北', '腊': '臘', '闰': '閏'
+            };
+            let result = str;
+            for (const [k, v] of Object.entries(map)) {
+                result = result.split(k).join(v);
+            }
+            return result;
+        }
+
+        // 使用真實農曆演算庫獲取指定日期的完整通勝黃曆吉凶資料
+        function getAuthenticAlmanacData(dateObj) {
+            if (typeof Solar === 'undefined') {
+                return null;
+            }
+            const solar = Solar.fromYmd(dateObj.getFullYear(), dateObj.getMonth() + 1, dateObj.getDate());
+            const lunar = solar.getLunar();
+
+            const yearGanZhi = `${lunar.getYearInGanZhi()}（${toTraditionalAlmanacText(lunar.getYearShengXiao())}）年`;
+            const monthGanZhi = `${lunar.getMonthInGanZhi()}月`;
+            const dayGanZhi = `${lunar.getDayInGanZhi()}日`;
+            const lunarMonthDay = `農曆${toTraditionalAlmanacText(lunar.getMonthInChinese())}月${toTraditionalAlmanacText(lunar.getDayInChinese())}`;
+
+            // 建除十二值神 (建、除、滿、平、定、執、破、危、成、收、開、閉)
+            const zhiXing = toTraditionalAlmanacText(lunar.getZhiXing());
+            // 十二值神 (青龍、明堂、天刑、朱雀等) & 黃道黑道吉凶
+            const dayTianShen = toTraditionalAlmanacText(lunar.getDayTianShen());
+            const dayTianShenType = toTraditionalAlmanacText(lunar.getDayTianShenType()); // 黃道 / 黑道
+            const dayTianShenLuck = toTraditionalAlmanacText(lunar.getDayTianShenLuck()); // 吉 / 凶
+
+            // 二十八星宿
+            const xiu = toTraditionalAlmanacText(lunar.getXiu() + lunar.getZheng() + lunar.getAnimal());
+            const xiuLuck = toTraditionalAlmanacText(lunar.getXiuLuck());
+
+            // 節氣
+            const jieQi = toTraditionalAlmanacText(lunar.getJieQi());
+
+            // 宜 / 忌
+            const rawYi = lunar.getDayYi() || [];
+            const rawJi = lunar.getDayJi() || [];
+            const yiList = rawYi.slice(0, 10).map(toTraditionalAlmanacText).join('・') || '諸事不宜';
+            const jiList = rawJi.slice(0, 10).map(toTraditionalAlmanacText).join('・') || '諸事不忌';
+
+            // 沖煞與吉神凶煞
+            const chongDesc = `沖${toTraditionalAlmanacText(lunar.getDayChongDesc())}`;
+            const shaDir = `煞${toTraditionalAlmanacText(lunar.getDaySha())}`;
+            const jiShen = (lunar.getDayJiShen() || []).slice(0, 4).map(toTraditionalAlmanacText).join(' ');
+            const xiongSha = (lunar.getDayXiongSha() || []).slice(0, 4).map(toTraditionalAlmanacText).join(' ');
+
+            return {
+                yearGanZhi,
+                monthGanZhi,
+                dayGanZhi,
+                lunarMonthDay,
+                zhiXing,
+                dayTianShen,
+                dayTianShenType,
+                dayTianShenLuck,
+                xiu,
+                xiuLuck,
+                jieQi,
+                yiList,
+                jiList,
+                chongDesc,
+                shaDir,
+                jiShen,
+                xiongSha
+            };
+        }
+
+        // 渲染左右兩側真實通勝黃曆欄
+        function renderAuthenticAlmanacSidebars(dStart, dEnd) {
+            const today = getTodayDateObj();
+            const isStartToday = dStart.getTime() === today.getTime();
+
+            const leftData = getAuthenticAlmanacData(dStart);
+            const rightData = getAuthenticAlmanacData(dEnd);
+
+            if (!leftData || !rightData) return;
+
+            // 更新頂部農曆節氣徽章
+            document.getElementById('almanacLunarHeaderBadge').textContent =
+                `今日：${getAuthenticAlmanacData(today).lunarMonthDay}（${getAuthenticAlmanacData(today).yearGanZhi}）`;
+
+            // 左欄：開始日（或今日）
+            document.getElementById('leftAlmanacTitle').textContent =
+                isStartToday ? `今日黃曆（${dStart.getMonth()+1}月${dStart.getDate()}日）` : `開始日黃曆（${dStart.getMonth()+1}月${dStart.getDate()}日）`;
+            document.getElementById('leftAlmanacGanZhi').textContent =
+                `${leftData.monthGanZhi} ${leftData.dayGanZhi}`;
+
+            const leftLuckBadge = leftData.dayTianShenLuck === '吉'
+                ? `<span class="px-1.5 py-0.5 rounded bg-tsRed text-white text-[11px] font-black">${leftData.dayTianShen}（黃道吉日）</span>`
+                : `<span class="px-1.5 py-0.5 rounded bg-stone-600 text-white text-[11px] font-black">${leftData.dayTianShen}（黑道日）</span>`;
+
+            document.getElementById('leftAlmanacMeta').innerHTML = `
+                <div class="flex items-center justify-between">
+                    <span class="text-tsDarkRed text-sm font-black">${leftData.lunarMonthDay}</span>
+                    ${leftLuckBadge}
+                </div>
+                <div class="flex flex-wrap items-center justify-between text-[11px] text-stone-600 pt-1 border-t border-stone-200">
+                    <span>十二建除：<b class="text-tsInk">${leftData.zhiXing}日</b></span>
+                    <span>廿八星宿：<b class="text-tsInk">${leftData.xiu}(${leftData.xiuLuck})</b></span>
+                </div>
+                <div class="text-[11px] text-stone-600">
+                    吉神宜趨：<span class="text-tsGreen font-semibold">${leftData.jiShen || '無'}</span>
+                </div>
+            `;
+            document.getElementById('leftAlmanacYi').textContent = leftData.yiList;
+            document.getElementById('leftAlmanacJi').textContent = leftData.jiList;
+            document.getElementById('leftAlmanacFooter').innerHTML = `
+                <span><b class="text-tsRed">沖煞：</b>${leftData.chongDesc}・${leftData.shaDir}</span>
+                <span><b class="text-stone-700">凶煞：</b>${leftData.xiongSha.split(' ')[0] || '無'}</span>
+            `;
+
+            // 右欄：目標日
+            document.getElementById('rightAlmanacTitle').textContent =
+                `目標日黃曆（${dEnd.getMonth()+1}月${dEnd.getDate()}日）`;
+            document.getElementById('rightAlmanacGanZhi').textContent =
+                `${rightData.monthGanZhi} ${rightData.dayGanZhi}`;
+
+            const rightLuckBadge = rightData.dayTianShenLuck === '吉'
+                ? `<span class="px-1.5 py-0.5 rounded bg-tsRed text-white text-[11px] font-black">${rightData.dayTianShen}（黃道吉日）</span>`
+                : `<span class="px-1.5 py-0.5 rounded bg-stone-600 text-white text-[11px] font-black">${rightData.dayTianShen}（黑道日）</span>`;
+
+            document.getElementById('rightAlmanacMeta').innerHTML = `
+                <div class="flex items-center justify-between">
+                    <span class="text-tsGreen text-sm font-black">${rightData.lunarMonthDay}</span>
+                    ${rightLuckBadge}
+                </div>
+                <div class="flex flex-wrap items-center justify-between text-[11px] text-stone-600 pt-1 border-t border-stone-200">
+                    <span>十二建除：<b class="text-tsInk">${rightData.zhiXing}日</b></span>
+                    <span>廿八星宿：<b class="text-tsInk">${rightData.xiu}(${rightData.xiuLuck})</b></span>
+                </div>
+                <div class="text-[11px] text-stone-600">
+                    吉神宜趨：<span class="text-tsGreen font-semibold">${rightData.jiShen || '無'}</span>
+                </div>
+            `;
+            document.getElementById('rightAlmanacYi').textContent = rightData.yiList;
+            document.getElementById('rightAlmanacJi').textContent = rightData.jiList;
+            document.getElementById('rightAlmanacFooter').innerHTML = `
+                <span><b class="text-tsRed">沖煞：</b>${rightData.chongDesc}・${rightData.shaDir}</span>
+                <span><b class="text-stone-700">凶煞：</b>${rightData.xiongSha.split(' ')[0] || '無'}</span>
+            `;
+        }
+
+        // 尋找最接近指定日期的星期六
+        function getNearestSaturday(baseDate) {
+            const d = new Date(baseDate.getFullYear(), baseDate.getMonth(), baseDate.getDate());
+            const day = d.getDay(); // 0=Sun, 6=Sat
+            const diff = 6 - day;
+            d.setDate(d.getDate() + diff);
+            return d;
+        }
+
+        function getSaturdayWeekType(targetSatDate, refLongSatDate) {
+            const msPerDay = 24 * 60 * 60 * 1000;
+            const diffDays = Math.round((targetSatDate.getTime() - refLongSatDate.getTime()) / msPerDay);
+            const diffWeeks = Math.round(diffDays / 7);
+            return Math.abs(diffWeeks) % 2 === 0 ? 'long' : 'short';
+        }
+
+        /*************************************************************************
+         * 4. 完整儲存與讀取所有用家設定
+         *************************************************************************/
+        function saveSettingsToStorage() {
+            if (isInitializing) return; // 初始化載入完成前不覆蓋紀錄
+
+            const satModeEl = document.querySelector('input[name="satMode"]:checked');
+            const state = {
+                autoTodayStart: document.getElementById('autoTodayStartCheck').checked,
+                startDate: document.getElementById('startDateInput').value,
+                endDate: document.getElementById('endDateInput').value,
+                includeStart: document.getElementById('includeStartCheck').checked,
+                excludeSun: document.getElementById('excludeSunCheck').checked,
+                excludeHoliday: document.getElementById('excludeHolidayCheck').checked,
+                satMode: satModeEl ? satModeEl.value : 'all',
+                refLongSat: document.getElementById('refLongSatInput').value,
+                soupMode: currentSoupMode,
+                isCalendarCollapsed: isCalendarCollapsed,
+                manualOverrides: Array.from(manualOverrides.entries()),
+                lastQuoteText: lastSavedQuoteText,
+                lastQuoteStatus: lastSavedQuoteStatus
+            };
+
+            writePersistentState(state);
+
+            const statusEl = document.getElementById('autoSaveStatusText');
+            if (statusEl) {
+                const now = new Date();
+                const timeStr = `${String(now.getHours()).padStart(2, '0')}:${String(now.getMinutes()).padStart(2, '0')}:${String(now.getSeconds()).padStart(2, '0')}`;
+                statusEl.textContent = `系統已自動紀錄您的所有設定（最後儲存於 ${timeStr}，下次開啟自動載入）`;
+            }
+        }
+
+        function loadSettingsFromStorage() {
+            const today = getTodayDateObj();
+            const todayStr = formatDateStr(today);
+
+            // 更新頂部今日資訊
+            const todayAlmanac = getAuthenticAlmanacData(today);
+            const ganzhi = todayAlmanac ? todayAlmanac.yearGanZhi : '';
+            const wk = WEEKDAY_NAMES[today.getDay()];
+            document.getElementById('todayHeaderBadge').innerHTML =
+                `<i class="fa-regular fa-calendar mr-1"></i>今日：公曆 ${today.getFullYear()}年${today.getMonth() + 1}月${today.getDate()}日（星期${wk}）・歲次${ganzhi}`;
+
+            renderNearbySaturdayButtons(today);
+
+            const state = readPersistentState();
+            if (state) {
+                // 1. 讀取「今天（自動設為今天）」勾選狀態與「開始日期」
+                const autoToday = typeof state.autoTodayStart === 'boolean' ? state.autoTodayStart : false;
+                document.getElementById('autoTodayStartCheck').checked = autoToday;
+
+                if (autoToday) {
+                    // 若用家勾選了「今天」，自動把開始日期更新為當天
+                    document.getElementById('startDateInput').value = todayStr;
+                } else if (state.startDate && parseDateStr(state.startDate)) {
+                    // 若用家自定義了其他開始日期，完整還原用家選擇的開始日期
+                    document.getElementById('startDateInput').value = state.startDate;
+                } else {
+                    document.getElementById('startDateInput').value = todayStr;
+                }
+
+                // 2. 讀取「目標日期（結束日）」
+                if (state.endDate && parseDateStr(state.endDate)) {
+                    document.getElementById('endDateInput').value = state.endDate;
+                } else {
+                    let defaultEnd = addDays(today, 30);
+                    const maxDate = parseDateStr('2027-12-31');
+                    if (defaultEnd > maxDate) defaultEnd = maxDate;
+                    document.getElementById('endDateInput').value = formatDateStr(defaultEnd);
+                }
+
+                // 3. 讀取所有計算規則勾選框
+                if (typeof state.includeStart === 'boolean') {
+                    document.getElementById('includeStartCheck').checked = state.includeStart;
+                }
+                if (typeof state.excludeSun === 'boolean') {
+                    document.getElementById('excludeSunCheck').checked = state.excludeSun;
+                }
+                if (typeof state.excludeHoliday === 'boolean') {
+                    document.getElementById('excludeHolidayCheck').checked = state.excludeHoliday;
+                }
+
+                // 4. 讀取星期六及長短週模式
+                if (state.satMode) {
+                    const radio = document.querySelector(`input[name="satMode"][value="${state.satMode}"]`);
+                    if (radio) radio.checked = true;
+                    const panel = document.getElementById('alternateSatPanel');
+                    if (state.satMode === 'alternate') {
+                        panel.classList.remove('hidden');
+                    } else {
+                        panel.classList.add('hidden');
+                    }
+                }
+
+                // 5. 讀取長週基準星期六
+                if (state.refLongSat && parseDateStr(state.refLongSat)) {
+                    document.getElementById('refLongSatInput').value = state.refLongSat;
+                } else {
+                    document.getElementById('refLongSatInput').value = formatDateStr(getNearestSaturday(today));
+                }
+
+                // 6. 讀取手動自定義計入／排除的日期
+                manualOverrides.clear();
+                if (Array.isArray(state.manualOverrides)) {
+                    state.manualOverrides.forEach(([k, v]) => manualOverrides.set(k, v));
+                }
+
+                // 7. 讀取月曆收起／展開狀態
+                if (typeof state.isCalendarCollapsed === 'boolean') {
+                    isCalendarCollapsed = state.isCalendarCollapsed;
+                    applyCalendarCollapseUI();
+                }
+
+                // 8. 讀取雞湯／毒雞湯模式及上次語錄
+                if (state.soupMode === 'soul' || state.soupMode === 'toxic') {
+                    currentSoupMode = state.soupMode;
+                    updateSoupModeButtonsUI();
+                }
+                if (state.lastQuoteText) {
+                    lastSavedQuoteText = state.lastQuoteText;
+                    lastSavedQuoteStatus = state.lastQuoteStatus || '已載入上次批命紀錄';
+                }
+
+                return true;
+            }
+
+            // 首次開啟無任何紀錄時的預設值
+            document.getElementById('autoTodayStartCheck').checked = true;
+            document.getElementById('startDateInput').value = todayStr;
+            let defaultEnd = addDays(today, 30);
+            const maxDate = parseDateStr('2027-12-31');
+            if (defaultEnd > maxDate) defaultEnd = maxDate;
+            document.getElementById('endDateInput').value = formatDateStr(defaultEnd);
+            document.getElementById('refLongSatInput').value = formatDateStr(getNearestSaturday(today));
+            return false;
+        }
+
+        function resetAllSavedSettings() {
+            isInitializing = true;
+            clearPersistentState();
+            manualOverrides.clear();
+            lastSavedQuoteText = '';
+            lastSavedQuoteStatus = '';
+
+            const today = getTodayDateObj();
+            const todayStr = formatDateStr(today);
+            document.getElementById('autoTodayStartCheck').checked = true;
+            document.getElementById('startDateInput').value = todayStr;
+
+            let defaultEnd = addDays(today, 30);
+            const maxDate = parseDateStr('2027-12-31');
+            if (defaultEnd > maxDate) defaultEnd = maxDate;
+            document.getElementById('endDateInput').value = formatDateStr(defaultEnd);
+            document.getElementById('refLongSatInput').value = formatDateStr(getNearestSaturday(today));
+
+            document.getElementById('includeStartCheck').checked = true;
+            document.getElementById('excludeSunCheck').checked = true;
+            document.getElementById('excludeHolidayCheck').checked = true;
+
+            const allRadio = document.querySelector('input[name="satMode"][value="all"]');
+            if (allRadio) allRadio.checked = true;
+            document.getElementById('alternateSatPanel').classList.add('hidden');
+            document.getElementById('refSatFeedback').textContent = '';
+
+            currentSoupMode = 'soul';
+            updateSoupModeButtonsUI();
+
+            isCalendarCollapsed = false;
+            applyCalendarCollapseUI();
+
+            isInitializing = false;
+            recalculateAndRender();
+            generateDynamicQuote();
+        }
+
+        window.onload = function () {
+            isInitializing = true;
+            const hasSavedState = loadSettingsFromStorage();
+            bindInputEvents();
+            isInitializing = false;
+            recalculateAndRender();
+
+            // 若已有保存的 AI 語錄則先呈現，否則立即調用 AI 生成
+            if (hasSavedState && lastSavedQuoteText) {
+                document.getElementById('quoteText').textContent = lastSavedQuoteText;
+                document.getElementById('quoteSourceStatus').textContent = lastSavedQuoteStatus;
+            } else {
+                generateDynamicQuote();
+            }
+        };
+
+        function renderNearbySaturdayButtons(baseDate) {
+            const thisSat = getNearestSaturday(baseDate);
+            const container = document.getElementById('nearbySaturdaysBtns');
+            container.innerHTML = '';
+
+            const offsets = [-14, -7, 0, 7];
+            offsets.forEach(offset => {
+                const satDate = addDays(thisSat, offset);
+                const satStr = formatDateStr(satDate);
+                const label = offset === 0 ? `本週六 (${satDate.getMonth()+1}/${satDate.getDate()})` :
+                              offset === -7 ? `上週六 (${satDate.getMonth()+1}/${satDate.getDate()})` :
+                              offset === -14 ? `前兩週六 (${satDate.getMonth()+1}/${satDate.getDate()})` :
+                              `下週六 (${satDate.getMonth()+1}/${satDate.getDate()})`;
+
+                const btn = document.createElement('button');
+                btn.type = 'button';
+                btn.className = 'text-xs bg-white hover:bg-amber-200 text-amber-950 border border-amber-600 px-2 py-1 rounded font-medium transition';
+                btn.textContent = label;
+                btn.onclick = () => {
+                    document.getElementById('refLongSatInput').value = satStr;
+                    document.getElementById('refSatFeedback').textContent = `已設定 ${satStr}（星期六）為長週基準日。`;
+                    recalculateAndRender();
+                };
+                container.appendChild(btn);
+            });
+        }
+
+        function bindInputEvents() {
+            // 「今天（自動設為今天）」勾選框事件
+            const autoTodayCheck = document.getElementById('autoTodayStartCheck');
+            autoTodayCheck.addEventListener('change', (e) => {
+                if (e.target.checked) {
+                    const todayStr = formatDateStr(getTodayDateObj());
+                    document.getElementById('startDateInput').value = todayStr;
+                }
+                recalculateAndRender();
+            });
+
+            // 開始日期選擇器（支援 input 與 change 雙事件即時儲存，若選擇非今天日期則自動解除「自動設為今天」鎖定）
+            const startInput = document.getElementById('startDateInput');
+            const handleStartDateChange = (e) => {
+                if (!e.target.value) return;
+                const todayStr = formatDateStr(getTodayDateObj());
+                if (e.target.value !== todayStr) {
+                    document.getElementById('autoTodayStartCheck').checked = false;
+                }
+                recalculateAndRender();
+            };
+            startInput.addEventListener('change', handleStartDateChange);
+            startInput.addEventListener('input', handleStartDateChange);
+
+            // 結束日期選擇器（支援 input 與 change 雙事件即時儲存）
+            const endInput = document.getElementById('endDateInput');
+            const handleEndDateChange = (e) => {
+                if (!e.target.value) return;
+                recalculateAndRender();
+            };
+            endInput.addEventListener('change', handleEndDateChange);
+            endInput.addEventListener('input', handleEndDateChange);
+
+            // 規則勾選框
+            const checkboxes = ['includeStartCheck', 'excludeSunCheck', 'excludeHolidayCheck'];
+            checkboxes.forEach(id => {
+                document.getElementById(id).addEventListener('change', () => {
+                    recalculateAndRender();
+                });
+            });
+
+            // 星期六模式切換
+            document.querySelectorAll('input[name="satMode"]').forEach(radio => {
+                radio.addEventListener('change', (e) => {
+                    const panel = document.getElementById('alternateSatPanel');
+                    if (e.target.value === 'alternate') {
+                        panel.classList.remove('hidden');
+                    } else {
+                        panel.classList.add('hidden');
+                    }
+                    recalculateAndRender();
+                });
+            });
+
+            // 基準長週星期六選擇器
+            const refSatInput = document.getElementById('refLongSatInput');
+            const handleRefSatChange = (e) => {
+                const picked = parseDateStr(e.target.value);
+                const feedback = document.getElementById('refSatFeedback');
+                if (!picked) return;
+
+                if (picked.getDay() !== 6) {
+                    const correctedSat = getNearestSaturday(picked);
+                    const correctedStr = formatDateStr(correctedSat);
+                    e.target.value = correctedStr;
+                    feedback.textContent = `提示：您選擇的日期並非星期六，系統已自動為您對齊至該週星期六（${correctedStr}）。`;
+                } else {
+                    feedback.textContent = `已設定 ${e.target.value}（星期六）為長週返工基準日。`;
+                }
+                recalculateAndRender();
+            };
+            refSatInput.addEventListener('change', handleRefSatChange);
+            refSatInput.addEventListener('input', handleRefSatChange);
+        }
+
+        /*************************************************************************
+         * 5. 快捷日期設定與月曆收起／展開功能
+         *************************************************************************/
+        function toggleCalendarCollapse() {
+            isCalendarCollapsed = !isCalendarCollapsed;
+            applyCalendarCollapseUI();
+            saveSettingsToStorage();
+        }
+
+        function applyCalendarCollapseUI() {
+            const body = document.getElementById('collapsibleCalendarBody');
+            const btnText = document.getElementById('toggleCalendarBtnText');
+            const icon = document.getElementById('toggleCalendarIcon');
+            if (isCalendarCollapsed) {
+                body.classList.add('hidden');
+                btnText.textContent = '展開月曆';
+                icon.className = 'fa-solid fa-chevron-down transition-transform';
+            } else {
+                body.classList.remove('hidden');
+                btnText.textContent = '收起月曆';
+                icon.className = 'fa-solid fa-chevron-up transition-transform';
+            }
+        }
+
+        function quickAddDays(days) {
+            const startObj = parseDateStr(document.getElementById('startDateInput').value) || getTodayDateObj();
+            const target = addDays(startObj, days);
+            document.getElementById('endDateInput').value = formatDateStr(target);
+            recalculateAndRender();
+        }
+
+        function quickAddMonths(months) {
+            const startObj = parseDateStr(document.getElementById('startDateInput').value) || getTodayDateObj();
+            const target = new Date(startObj.getFullYear(), startObj.getMonth() + months, startObj.getDate());
+            document.getElementById('endDateInput').value = formatDateStr(target);
+            recalculateAndRender();
+        }
+
+        function quickSetEndOfMonth() {
+            const startObj = parseDateStr(document.getElementById('startDateInput').value) || getTodayDateObj();
+            const endOfMonth = new Date(startObj.getFullYear(), startObj.getMonth() + 1, 0);
+            document.getElementById('endDateInput').value = formatDateStr(endOfMonth);
+            recalculateAndRender();
+        }
+
+        function quickSetDate(dateStr) {
+            document.getElementById('endDateInput').value = dateStr;
+            recalculateAndRender();
+        }
+
+        /*************************************************************************
+         * 7. 核心計算與渲染引擎
+         *************************************************************************/
+        function updateSingleDateCaption(inputId, captionId) {
+            const dateStr = document.getElementById(inputId).value;
+            const el = document.getElementById(captionId);
+            if (!dateStr) {
+                el.innerHTML = '';
+                return;
+            }
+            const d = parseDateStr(dateStr);
+            const wk = WEEKDAY_NAMES[d.getDay()];
+            const holiday = HK_PUBLIC_HOLIDAYS[dateStr];
+            const isRed = d.getDay() === 0 || Boolean(holiday);
+            const almanac = getAuthenticAlmanacData(d);
+            const lunarTxt = almanac ? almanac.lunarMonthDay : '';
+
+            el.innerHTML = `
+                <span class="${isRed ? 'text-tsRed font-bold' : 'text-tsGreen font-bold'}">
+                    星期${wk}・${lunarTxt} ${holiday ? `【${holiday}】` : ''}
+                </span>
+                <span class="text-stone-400">${dateStr}</span>
+            `;
+        }
+
+        function recalculateAndRender() {
+            updateSingleDateCaption('startDateInput', 'startDateLunarInfo');
+            updateSingleDateCaption('endDateInput', 'endDateLunarInfo');
+
+            const rawStart = parseDateStr(document.getElementById('startDateInput').value);
+            const rawEnd = parseDateStr(document.getElementById('endDateInput').value);
+            if (!rawStart || !rawEnd) return;
+
+            const includeStart = document.getElementById('includeStartCheck').checked;
+            const excludeSun = document.getElementById('excludeSunCheck').checked;
+            const excludeHoliday = document.getElementById('excludeHolidayCheck').checked;
+            const satMode = document.querySelector('input[name="satMode"]:checked').value;
+            const refLongSat = parseDateStr(document.getElementById('refLongSatInput').value) || getNearestSaturday(rawStart);
+
+            // 檢查目標日期是否早於開始日期
+            const pastWarning = document.getElementById('pastDateWarning');
+            let dStart = new Date(rawStart);
+            let dEnd = new Date(rawEnd);
+            if (rawEnd < rawStart) {
+                pastWarning.classList.remove('hidden');
+                dStart = new Date(rawEnd);
+                dEnd = new Date(rawStart);
+            } else {
+                pastWarning.classList.add('hidden');
+            }
+
+            // 渲染左右兩側真實通勝黃曆宜忌吉凶
+            renderAuthenticAlmanacSidebars(dStart, dEnd);
+
+            // 根據「包括開始日期」決定實際起算日
+            const effectiveStart = includeStart ? dStart : addDays(dStart, 1);
+
+            // 統計變數
+            let totalSpanDays = 0;
+            let remainingCount = 0;
+            let countedWeekdays = 0;
+            let countedSaturdays = 0;
+            let excludedTotal = 0;
+
+            let excludedBySatCount = 0;
+            let excludedBySunCount = 0;
+            let excludedByHolidayCount = 0;
+
+            // 儲存每日詳細資訊供月曆渲染
+            const dayRecordsMap = new Map();
+
+            if (effectiveStart <= dEnd) {
+                let curr = new Date(effectiveStart);
+                while (curr <= dEnd) {
+                    totalSpanDays++;
+                    const dStr = formatDateStr(curr);
+                    const dow = curr.getDay();
+                    const holidayName = HK_PUBLIC_HOLIDAYS[dStr] || null;
+
+                    let satType = null;
+                    if (dow === 6) {
+                        satType = getSaturdayWeekType(curr, refLongSat);
+                    }
+
+                    const autoExcludeReasons = [];
+                    if (dow === 0 && excludeSun) {
+                        autoExcludeReasons.push('星期日');
+                    }
+                    if (dow === 6) {
+                        if (satMode === 'all') {
+                            autoExcludeReasons.push('星期六');
+                        } else if (satMode === 'alternate' && satType === 'short') {
+                            autoExcludeReasons.push('短週星期六');
+                        }
+                    }
+                    if (holidayName && excludeHoliday) {
+                        autoExcludeReasons.push(`公眾假期(${holidayName})`);
+                    }
+
+                    const defaultIncluded = autoExcludeReasons.length === 0;
+                    const overrideState = manualOverrides.get(dStr) || null;
+
+                    let finalIncluded = defaultIncluded;
+                    if (overrideState === 'include') finalIncluded = true;
+                    if (overrideState === 'exclude') finalIncluded = false;
+
+                    if (finalIncluded) {
+                        remainingCount++;
+                        if (dow === 6) {
+                            countedSaturdays++;
+                        } else if (dow >= 1 && dow <= 5) {
+                            countedWeekdays++;
+                        }
+                    } else {
+                        excludedTotal++;
+                        if (overrideState !== 'exclude') {
+                            if (holidayName && excludeHoliday) {
+                                excludedByHolidayCount++;
+                            } else if (dow === 0 && excludeSun) {
+                                excludedBySunCount++;
+                            } else if (dow === 6) {
+                                excludedBySatCount++;
+                            }
+                        }
+                    }
+
+                    dayRecordsMap.set(dStr, {
+                        dateObj: new Date(curr),
+                        dateStr: dStr,
+                        dow,
+                        holidayName,
+                        satType,
+                        autoExcludeReasons,
+                        defaultIncluded,
+                        overrideState,
+                        finalIncluded
+                    });
+
+                    curr = addDays(curr, 1);
+                }
+            }
+
+            // 更新大字及統計面板
+            lastCalculatedRemaining = remainingCount;
+            document.getElementById('remainingDaysBig').textContent = remainingCount;
+            document.getElementById('statTotalSpan').textContent = totalSpanDays;
+            document.getElementById('statWeekdays').textContent = countedWeekdays;
+            document.getElementById('statCountedSats').textContent = countedSaturdays;
+            document.getElementById('statExcluded').textContent = excludedTotal;
+
+            // 更新頂部區間摘要
+            const startText = `${dStart.getFullYear()}年${dStart.getMonth()+1}月${dStart.getDate()}日`;
+            const endText = `${dEnd.getFullYear()}年${dEnd.getMonth()+1}月${dEnd.getDate()}日`;
+            document.getElementById('rangeSummaryText').textContent =
+                `推算區間：${startText} 至 ${endText}（${includeStart ? '包括開始日' : '不包括開始日'}）`;
+
+            // 更新月曆標題摘要膠囊
+            const summaryPill = document.getElementById('calendarSummaryPill');
+            if (summaryPill) {
+                summaryPill.textContent = manualOverrides.size > 0
+                    ? `共計入 ${remainingCount} 日・已手動修改 ${manualOverrides.size} 日`
+                    : `共計入 ${remainingCount} 日`;
+            }
+
+            // 更新扣除明細標籤
+            const breakdownEl = document.getElementById('exclusionBreakdown');
+            breakdownEl.innerHTML = `
+                <span class="px-2 py-0.5 bg-red-100/80 text-tsRed rounded">已扣公眾假期：<b>${excludedByHolidayCount}</b> 日</span>
+                <span class="px-2 py-0.5 bg-stone-200/80 text-stone-700 rounded">已扣星期日：<b>${excludedBySunCount}</b> 日</span>
+                <span class="px-2 py-0.5 bg-amber-100/80 text-amber-900 rounded">已扣星期六${satMode === 'alternate' ? '(短週)' : ''}：<b>${excludedBySatCount}</b> 日</span>
+                ${manualOverrides.size > 0 ? `<span class="px-2 py-0.5 bg-amber-200 text-amber-950 font-bold rounded">手動調整：<b>${manualOverrides.size}</b> 項</span>` : ''}
+            `;
+
+            // 儲存最新狀態至 localStorage
+            saveSettingsToStorage();
+
+            // 渲染手動修改標籤及互動月曆
+            renderManualOverridesBar();
+            renderInteractiveCalendars(dStart, dEnd, effectiveStart, dayRecordsMap);
+        }
+
+        /*************************************************************************
+         * 8. 互動式月曆與手動覆蓋功能
+         *************************************************************************/
+        function toggleDayOverride(dateStr, defaultIncluded) {
+            const currentOverride = manualOverrides.get(dateStr);
+
+            if (!currentOverride) {
+                manualOverrides.set(dateStr, defaultIncluded ? 'exclude' : 'include');
+            } else {
+                manualOverrides.delete(dateStr);
+            }
+            recalculateAndRender();
+        }
+
+        function clearAllManualOverrides() {
+            manualOverrides.clear();
+            recalculateAndRender();
+        }
+
+        function renderManualOverridesBar() {
+            const clearBtn = document.getElementById('btnClearOverrides');
+            const countBadge = document.getElementById('overrideCountBadge');
+            const listContainer = document.getElementById('manualOverridesListContainer');
+            const badgesContainer = document.getElementById('manualOverridesBadges');
+
+            if (manualOverrides.size === 0) {
+                clearBtn.classList.add('hidden');
+                listContainer.classList.add('hidden');
+                return;
+            }
+
+            clearBtn.classList.remove('hidden');
+            listContainer.classList.remove('hidden');
+            countBadge.textContent = manualOverrides.size;
+
+            badgesContainer.innerHTML = '';
+            const sortedKeys = Array.from(manualOverrides.keys()).sort();
+            sortedKeys.forEach(dateStr => {
+                const action = manualOverrides.get(dateStr);
+                const isForceInclude = action === 'include';
+                const badge = document.createElement('button');
+                badge.type = 'button';
+                badge.className = `inline-flex items-center gap-1.5 px-2.5 py-1 rounded text-xs font-bold border transition ${
+                    isForceInclude
+                        ? 'bg-emerald-100 border-emerald-600 text-emerald-950 hover:bg-emerald-200'
+                        : 'bg-stone-200 border-stone-500 text-stone-800 hover:bg-stone-300'
+                }`;
+                badge.innerHTML = `
+                    <span>${dateStr}：${isForceInclude ? '自定義計入' : '自定義排除(放假)'}</span>
+                    <i class="fa-solid fa-xmark text-[10px]"></i>
+                `;
+                badge.onclick = () => {
+                    manualOverrides.delete(dateStr);
+                    recalculateAndRender();
+                };
+                badgesContainer.appendChild(badge);
+            });
+        }
+
+        function renderInteractiveCalendars(dStart, dEnd, effectiveStart, dayRecordsMap) {
+            const container = document.getElementById('calendarMonthsContainer');
+            container.innerHTML = '';
+
+            const satMode = document.querySelector('input[name="satMode"]:checked').value;
+
+            const startYear = dStart.getFullYear();
+            const startMonth = dStart.getMonth();
+            const endYear = dEnd.getFullYear();
+            const endMonth = dEnd.getMonth();
+
+            const totalMonths = (endYear - startYear) * 12 + (endMonth - startMonth) + 1;
+            const maxRenderMonths = 36;
+
+            let curY = startYear;
+            let curM = startMonth;
+            let renderedCount = 0;
+
+            while ((curY < endYear || (curY === endYear && curM <= endMonth)) && renderedCount < maxRenderMonths) {
+                const monthCard = buildMonthCalendarElement(curY, curM, dStart, dEnd, effectiveStart, dayRecordsMap, satMode);
+                container.appendChild(monthCard);
+
+                curM++;
+                if (curM > 11) {
+                    curM = 0;
+                    curY++;
+                }
+                renderedCount++;
+            }
+
+            if (totalMonths > maxRenderMonths) {
+                const note = document.createElement('div');
+                note.className = 'text-center text-xs text-tsRed font-sansTC p-3 bg-red-50 border border-tsRed rounded';
+                note.textContent = `區間共跨越 ${totalMonths} 個月，為保持流暢已顯示前 ${maxRenderMonths} 個月之互動月曆，上方總日數統計已完整計算全段區間。`;
+                container.appendChild(note);
+            }
+        }
+
+        function buildMonthCalendarElement(year, month, dStart, dEnd, effectiveStart, dayRecordsMap, satMode) {
+            const wrapper = document.createElement('div');
+            wrapper.className = 'border-2 border-tsRed/80 rounded-sm overflow-hidden bg-tsPaper shadow-sm';
+
+            let monthIncludedCount = 0;
+            const daysInMonth = new Date(year, month + 1, 0).getDate();
+            for (let d = 1; d <= daysInMonth; d++) {
+                const dStr = `${year}-${String(month + 1).padStart(2, '0')}-${String(d).padStart(2, '0')}`;
+                const rec = dayRecordsMap.get(dStr);
+                if (rec && rec.finalIncluded) monthIncludedCount++;
+            }
+
+            const header = document.createElement('div');
+            header.className = 'bg-tsRed text-tsPaper px-3 sm:px-4 py-2 flex items-center justify-between';
+            header.innerHTML = `
+                <div class="font-black text-sm sm:text-lg tracking-wider">
+                    公曆 ${year} 年 ${month + 1} 月
+                </div>
+                <div class="text-xs font-sansTC bg-red-950/60 px-2.5 py-1 rounded border border-yellow-400/40">
+                    本月計入：<strong class="text-yellow-300 text-sm">${monthIncludedCount}</strong> 日
+                </div>
+            `;
+            wrapper.appendChild(header);
+
+            const weekHeader = document.createElement('div');
+            weekHeader.className = 'grid grid-cols-7 border-b-2 border-tsRed/60 bg-red-50/70 text-center text-xs sm:text-sm font-bold py-1.5';
+            WEEKDAY_NAMES.forEach((wk, idx) => {
+                const colorClass = idx === 0 ? 'text-tsRed' : idx === 6 ? 'text-amber-800' : 'text-tsGreen';
+                weekHeader.innerHTML += `<div class="${colorClass}">週${wk}</div>`;
+            });
+            wrapper.appendChild(weekHeader);
+
+            const grid = document.createElement('div');
+            grid.className = 'grid grid-cols-7 bg-stone-300 gap-[1px] border-t border-stone-300 font-sansTC';
+
+            const firstDayDow = new Date(year, month, 1).getDay();
+            for (let i = 0; i < firstDayDow; i++) {
+                const empty = document.createElement('div');
+                empty.className = 'bg-stone-100/70 min-h-[68px] sm:min-h-[86px]';
+                grid.appendChild(empty);
+            }
+
+            for (let day = 1; day <= daysInMonth; day++) {
+                const currDate = new Date(year, month, day, 0, 0, 0, 0);
+                const dStr = formatDateStr(currDate);
+                const dow = currDate.getDay();
+                const holidayName = HK_PUBLIC_HOLIDAYS[dStr] || null;
+                const rec = dayRecordsMap.get(dStr);
+
+                const isStartDayExcluded = (currDate.getTime() === dStart.getTime()) && (effectiveStart > dStart);
+                const isInRange = rec !== undefined;
+
+                const cell = document.createElement('div');
+
+                if (!isInRange) {
+                    cell.className = 'bg-stone-100/80 text-stone-400 p-1 sm:p-1.5 min-h-[68px] sm:min-h-[86px] flex flex-col justify-between select-none opacity-60';
+                    cell.innerHTML = `
+                        <div class="flex justify-between items-start">
+                            <span class="text-xs sm:text-sm font-bold font-serifTC">${day}</span>
+                            ${isStartDayExcluded ? '<span class="text-[9px] bg-stone-300 text-stone-700 px-1 rounded">起(不計)</span>' : ''}
+                        </div>
+                        ${holidayName ? `<div class="text-[9px] sm:text-[10px] text-red-400 truncate">${holidayName}</div>` : '<div></div>'}
+                    `;
+                } else {
+                    const { satType, defaultIncluded, overrideState, finalIncluded } = rec;
+                    const isRedText = dow === 0 || Boolean(holidayName);
+
+                    let bgClass = finalIncluded ? 'bg-tsPaper hover:bg-emerald-50/80' : 'bg-stone-200/75 hover:bg-stone-300/70';
+                    if (overrideState) {
+                        bgClass = 'bg-amber-50 hover:bg-amber-100 ring-2 ring-inset ring-amber-500';
+                    }
+
+                    cell.className = `day-cell ${bgClass} p-1 sm:p-2 min-h-[68px] sm:min-h-[86px] flex flex-col justify-between cursor-pointer select-none relative`;
+                    cell.title = `點擊切換 ${dStr} 的計入／排除狀態`;
+                    cell.onclick = () => toggleDayOverride(dStr, defaultIncluded);
+
+                    let topBadges = '';
+                    if (satMode === 'alternate' && dow === 6) {
+                        topBadges += satType === 'long'
+                            ? `<span class="text-[9px] sm:text-[10px] px-1 py-0.5 rounded bg-amber-600 text-white font-bold leading-none">長週</span>`
+                            : `<span class="text-[9px] sm:text-[10px] px-1 py-0.5 rounded bg-stone-500 text-white leading-none">短週</span>`;
+                    } else if (currDate.getTime() === dStart.getTime()) {
+                        topBadges += `<span class="text-[9px] sm:text-[10px] px-1 py-0.5 rounded bg-tsRed text-white font-bold leading-none">起</span>`;
+                    } else if (currDate.getTime() === dEnd.getTime()) {
+                        topBadges += `<span class="text-[9px] sm:text-[10px] px-1 py-0.5 rounded bg-tsDarkRed text-yellow-200 font-bold leading-none">標</span>`;
+                    }
+
+                    let midContent = '';
+                    if (holidayName) {
+                        midContent = `<div class="text-[9px] sm:text-xs font-bold text-tsRed leading-tight line-clamp-1 my-0.5" title="${holidayName}">${holidayName}</div>`;
+                    } else if (dow === 0) {
+                        midContent = `<div class="text-[9px] sm:text-[10px] text-tsRed/70">星期日</div>`;
+                    } else if (dow === 6 && satMode === 'all') {
+                        midContent = `<div class="text-[9px] sm:text-[10px] text-stone-500">週六休</div>`;
+                    }
+
+                    let bottomStatus = '';
+                    if (overrideState === 'include') {
+                        bottomStatus = `<div class="text-[9px] sm:text-xs font-bold text-emerald-900 bg-emerald-200/90 px-1 py-0.5 rounded text-center truncate">自定義計入</div>`;
+                    } else if (overrideState === 'exclude') {
+                        bottomStatus = `<div class="text-[9px] sm:text-xs font-bold text-amber-950 bg-amber-300/90 px-1 py-0.5 rounded text-center line-through truncate">自定義排除</div>`;
+                    } else if (finalIncluded) {
+                        bottomStatus = `<div class="text-[9px] sm:text-xs font-bold text-tsGreen bg-emerald-100/80 border border-emerald-500/40 px-1 py-0.5 rounded text-center">計入</div>`;
+                    } else {
+                        bottomStatus = `<div class="text-[9px] sm:text-xs text-stone-500 bg-stone-300/60 px-1 py-0.5 rounded text-center line-through">已排除</div>`;
+                    }
+
+                    const numColor = !finalIncluded
+                        ? 'text-stone-400 line-through'
+                        : isRedText
+                            ? 'text-tsRed'
+                            : dow === 6
+                                ? 'text-amber-900'
+                                : 'text-tsGreen';
+
+                    cell.innerHTML = `
+                        <div class="flex items-start justify-between gap-0.5">
+                            <span class="text-sm sm:text-lg font-black font-serifTC leading-none ${numColor}">${day}</span>
+                            <div class="flex flex-wrap gap-0.5 justify-end">${topBadges}</div>
+                        </div>
+                        <div class="my-auto">${midContent}</div>
+                        ${bottomStatus}
+                    `;
+                }
+
+                grid.appendChild(cell);
+            }
+
+            wrapper.appendChild(grid);
+            return wrapper;
+        }
+
+        /*************************************************************************
+         * 8. 心靈雞湯／毒雞湯 — 內建預先錄入各 100 句地道通勝批命語錄庫（免 API 離線即時抽籤，不重覆）
+         *************************************************************************/
+        const SOUL_QUOTES_100 = [
+            "【通勝批曰・宜微笑】尚餘 {days} 日啫，行路唔使急，最緊要每一步都踏實，好運自然跟住你行！",
+            "【通勝批曰・宜飲茶】今日宜嘆番一盅兩件，放慢腳步，尚餘 {days} 日好快就過，畀自己叉足電先！",
+            "【通勝批曰・宜自強】千祈唔好睇少自己日積月累嘅努力，捱埋呢 {days} 日，收成一定超乎你想像！",
+            "【通勝批曰・宜感恩】每朝早醒來都係全新嘅吉日，倒數 {days} 日入面，總有小確幸等緊你發掘。",
+            "【通勝批曰・宜順心】萬事皆有定數，唔使日日望住個鐘，順其自然咁過埋呢 {days} 日，福氣自來。",
+            "【通勝批曰・宜休息】攰就抖下，天唔會塌落嚟嘅，尚餘 {days} 日嘅路，養好精神先行得更遠。",
+            "【通勝批曰・宜賞自己】捱到今日已經好叻仔叻女！距離目標仲有 {days} 日，今晚買杯凍檸茶或者甜品獎勵自己啦。",
+            "【通勝批曰・宜樂觀】烏雲背後總有陽光，就算今日幾忙都好，記住只係爭 {days} 日就到終點線！",
+            "【通勝批曰・宜放下】尋日嘅煩惱已經過去，唔好帶埋落今日。專注當下，開開心心迎接尚餘嘅 {days} 日。",
+            "【通勝批曰・宜盼望】好日子就喺前面招緊手！尚餘 {days} 日，每一日都係向美好生活邁進嘅一步。",
+            "【通勝批曰・宜從容】香港地節奏快，但你個心可以慢落嚟。倒數 {days} 日，按自己節奏行就最穩陣。",
+            "【通勝批曰・宜堅定】路遙知馬力，你流過嘅每一滴汗都唔會白費，仲有 {days} 日就見真章，頂住呀！",
+            "【通勝批曰・宜聚舊】放工約埋三五知己吹下水、食頓好嘅，快樂嘅時光會令呢 {days} 日過得特別快！",
+            "【通勝批曰・宜深呼吸】覺得大壓力嗰陣，深深吸一口氣。尚餘 {days} 日唔算長，你絕對有能力應付裕如。",
+            "【通勝批曰・宜惜福】平平安安又一日，其實已經係好大嘅福份。懷住平常心，笑住倒數埋呢 {days} 日啦！",
+            "【通勝批曰・宜豁達】世事無絕對，退一步海闊天空。尚餘 {days} 日，將小事化無，心情自然靚。",
+            "【通勝批曰・宜早睡】今晚早啲上床瞓覺，養足精神，聽日醒來倒數數字又少一日，離目標只差 {days} 日！",
+            "【通勝批曰・宜希望】每一粒種子都需要時間發芽，呢 {days} 日就係你累積能量嘅黃金期，加油！",
+            "【通勝批曰・宜自信】天生我材必有用，無論遇到咩難關，記住你已經行咗大半條路，淨番 {days} 日咋！",
+            "【通勝批曰・宜偷閒】忙裡偷閒唔係懶，而係為咗走更長嘅路。尚餘 {days} 日，間中望下窗外風景啦。",
+            "【通勝批曰・宜讚美】今日照鏡記住同自己講聲：「你做得好好！」尚餘 {days} 日，繼續為自己驕傲。",
+            "【通勝批曰・宜柔軟】身段放軟啲，心態放寬啲，尚餘 {days} 日嘅考驗，不過係幫你磨練出更強嘅自己。",
+            "【通勝批曰・宜期待】最好嘅事物總係值得等待，距離好日子尚餘 {days} 日，先預祝你心想事成！",
+            "【通勝批曰・宜食好西】民以食為天，有咩煩惱食飽先講！尚餘 {days} 日，用美食填滿每一日嘅期待。",
+            "【通勝批曰・宜散步】放工不妨行多個街口，吹下海風聽下歌，尚餘 {days} 日喺不知不覺間就會圓滿度過。",
+            "【通勝批曰・宜知足】知足常樂係古人最高智慧，倒數 {days} 日，珍惜身邊人同眼前事，日日都係黃道吉日。",
+            "【通勝批曰・宜加油】獅子山下精神就係永不言棄，區區 {days} 日點難得倒你？大步檻過啦！",
+            "【通勝批曰・宜清心】唔好理人哋點講，最緊要對得住自己。尚餘 {days} 日，清心寡慾，快樂自來。",
+            "【通勝批曰・宜充電】手機無電都要叉，人又點可以日日搏命？趁呢 {days} 日搵返生活同工作嘅平衡點。",
+            "【通勝批曰・宜微笑迎人】愛笑嘅人運氣唔會太差，尚餘 {days} 日，嘴角向上揚，貴人自然埋你身！",
+            "【通勝批曰・宜隨緣】命裡有時終須有，唔使強求太多，踏實過好餘下呢 {days} 日，自有好結果。",
+            "【通勝批曰・宜拉筋】坐得耐記得起身拉下筋、飲杯溫水，身體健康先可以開開心心迎接 {days} 日後嘅大日子！",
+            "【通勝批曰・宜聽歌】播首自己最鍾意嘅廣東歌，旋律一響，尚餘 {days} 日嘅疲勞即刻消散一半。",
+            "【通勝批曰・宜寬容】放過別人等於放過自己，唔好同小人一般見識，尚餘 {days} 日，留番啲力氣去開心！",
+            "【通勝批曰・宜慢活】慢工出細貨，日子一日一日咁計，尚餘 {days} 日，慢慢細味生活嘅甜酸苦辣。",
+            "【通勝批曰・宜行善】日行一善，積福積德。喺倒數 {days} 日入面多幫人、多說好話，好運自然加倍奉還。",
+            "【通勝批曰・宜憧憬】閉上眼想像一下 {days} 日之後輕鬆自在嘅畫面，係咪即刻覺得充滿力量呢？",
+            "【通勝批曰・宜自在】心若自在，處處皆是樂土。尚餘 {days} 日，唔好畀外在環境影響你內心嘅平靜。",
+            "【通勝批曰・宜勇敢】萬事起頭難，但你已經行到中後段啦！尚餘 {days} 日，鼓起勇氣衝埋去！",
+            "【通勝批曰・宜飲湯】返屋企飲碗靚湯，暖胃又暖心。尚餘 {days} 日，有健康體魄就萬事大吉。",
+            "【通勝批曰・宜專注】將大目標拆成小目標，一日完成一點點，尚餘 {days} 日話咁快就輕鬆達標！",
+            "【通勝批曰・宜曬太陽】陽光係最好嘅維他命，趁午飯時間出去行下，尚餘 {days} 日都要充滿朝氣！",
+            "【通勝批曰・宜斷捨離】執屋又好，執心情又好，清走唔需要嘅負能量，輕輕鬆鬆行埋呢 {days} 日。",
+            "【通勝批曰・宜相信】相信時間嘅力量，所有默默耕耘都會喺 {days} 日之後開花結果。",
+            "【通勝批曰・宜喜悅】今日係餘生最年輕嘅一日，尚餘 {days} 日，記得用最燦爛嘅笑容去紀錄每一刻。",
+            "【通勝批曰・宜溫柔】對世界溫柔，對自己更要溫柔。尚餘 {days} 日，唔好太苛責自己，你已經好出色。",
+            "【通勝批曰・宜平安】出入平安，萬事順遂。倒數 {days} 日，最緊要平平穩穩、順順利利。",
+            "【通勝批曰・宜儲氣】好似煲老火湯咁，時間夠先夠火候。尚餘 {days} 日，正係你儲氣爆發嘅好時機！",
+            "【通勝批曰・宜釋懷】人生不如意事十常八九，最緊要常想一二。尚餘 {days} 日，帶住好心情繼續前行。",
+            "【通勝批曰・宜盼晴】落雨又有咩好怕？雨後總會有彩虹。尚餘 {days} 日，美好嘅晴天就喺前面！",
+            "【通勝批曰・宜自得】人比人比死人，自己同自己比就夠。睇下自己堅持到只剩 {days} 日，真係值得掌聲！",
+            "【通勝批曰・宜寧靜】鬧市之中尋一處靜謐，飲杯熱茶定一定神，尚餘 {days} 日自然順風順水。",
+            "【通勝批曰・宜聚財】努力工作之餘都要懂得理財，捱埋呢 {days} 日，荷包同心靈一樣咁豐盛！",
+            "【通勝批曰・宜惜時】一寸光陰一寸金，尚餘 {days} 日，把時間留畀最重要嘅人同事。",
+            "【通勝批曰・宜開懷】笑一笑，十年少！尚餘 {days} 日，睇開啲、笑多啲，煩惱自然走夾唔抖。",
+            "【通勝批曰・宜進取】百尺竿頭，更進一步。尚餘 {days} 日係最後衝刺，發揮你嘅小宇宙啦！",
+            "【通勝批曰・宜感恩當下】每個當下都係獨一無二嘅禮物，倒數 {days} 日，好好享受呢段奮鬥嘅旅程。",
+            "【通勝批曰・宜養生】少飲凍嘢多飲溫水，錫住自己個身體，尚餘 {days} 日要健健康康咁過！",
+            "【通勝批曰・宜結緣】廣結善緣，和氣生財。尚餘 {days} 日入面，你嘅一個微笑可能會為自己帶來意想不到嘅好運。",
+            "【通勝批曰・宜築夢】有夢想嘅人最耀眼！距離目標只差 {days} 日，你離夢想成真又近咗一大步。",
+            "【通勝批曰・宜安定】心定則事圓，無論外邊風雨幾大，穩守陣腳過埋呢 {days} 日就係贏家。",
+            "【通勝批曰・宜幽默】用幽默感化解生活中嘅小摩擦，尚餘 {days} 日，輕鬆過關無難度！",
+            "【通勝批曰・宜賞花】路邊嘅小花都努力盛開緊，你又點可以放棄？尚餘 {days} 日，一齊燦爛咁綻放啦！",
+            "【通勝批曰・宜閱讀】揭開幾頁好書，讓心靈去旅行。尚餘 {days} 日，充實自己永遠係最划算嘅投資。",
+            "【通勝批曰・宜團圓】工作再忙都記得打個電話返屋企，家人嘅支持係你行埋呢 {days} 日最強嘅後盾。",
+            "【通勝批曰・宜暢想】為 {days} 日後嘅自己寫低一個願望，帶住呢份期盼，今日做起事上嚟特別有勁！",
+            "【通勝批曰・宜沉澱】靜水深流，越係接近終點越要沉得住氣。尚餘 {days} 日，穩紮穩打必獲全勝。",
+            "【通勝批曰・宜舒展】深呼吸，伸個大懶腰！尚餘 {days} 日嘅路途，一步一腳印，風光無限好。",
+            "【通勝批曰・宜互勉】同身邊一齊奮鬥嘅朋友講聲加油，互相打氣，尚餘 {days} 日轉眼就到！",
+            "【通勝批曰・宜初心】莫忘初心，方得始終。記住當初點解出發，尚餘 {days} 日一定可以完美收官。",
+            "【通勝批曰・宜甜食】心情悶悶哋？食粒朱古力或者蛋撻甜一下，尚餘 {days} 日即刻充滿幸福感！",
+            "【通勝批曰・宜包容】海納百川，有容乃大。尚餘 {days} 日，用大度嘅胸懷迎接每一個挑戰。",
+            "【通勝批曰・宜煥新】換個新髮型或者買件新衫，用煥然一新嘅心情走埋餘下嘅 {days} 日！",
+            "【通勝批曰・宜篤定】唔使懷疑自己，你嘅能力絕對超乎想像。尚餘 {days} 日，放心大膽去闖啦！",
+            "【通勝批曰・宜賞月】夜晚抬頭望下星空明月，宇宙咁大，眼前嘅煩惱其實好渺小。尚餘 {days} 日，安然入夢。",
+            "【通勝批曰・宜納福】打開心窗，讓好運同正能量流進來。尚餘 {days} 日，日日都有好消息！",
+            "【通勝批曰・宜勤勉】天道酬勤，每一分付出都有回報。倒數 {days} 日，你嘅努力上天都睇得見。",
+            "【通勝批曰・宜自在呼吸】唔好畀死線壓垮，每過一日你就贏咗一日。尚餘 {days} 日，繼續保持優雅節奏！",
+            "【通勝批曰・宜喝彩】為自己過去嘅堅持鼓掌，為未來嘅 {days} 日喝彩，好戲還在後頭！",
+            "【通勝批曰・宜暖心】天涼記得添衣，天熱記得補水。尚餘 {days} 日，做自己最貼心嘅守護者。",
+            "【通勝批曰・宜豁然】一時嘅得失唔代表全部，放長雙眼睇，{days} 日之後又係一條好漢！",
+            "【通勝批曰・宜順流】順水推舟，借力使力。尚餘 {days} 日，唔使下下硬碰，聰明咁應對就得。",
+            "【通勝批曰・宜圓融】處事圓融，福澤綿長。尚餘 {days} 日，笑口常開自然萬事亨通。",
+            "【通勝批曰・宜清朗】心境清朗，萬物皆明。尚餘 {days} 日，拋開雜念，專心迎接你嘅好日子。",
+            "【通勝批曰・宜勇往】前路光明，無懼風浪。尚餘 {days} 日，昂首闊步向目標進發啦！",
+            "【通勝批曰・宜惜緣】身邊每一個幫過你嘅人都係貴人，尚餘 {days} 日，懷住感恩嘅心行落去。",
+            "【通勝批曰・宜暢快】收工去跑個步或者出下汗，將壓力通通排走，尚餘 {days} 日倍感輕鬆！",
+            "【通勝批曰・宜吉慶】心中有吉，日日皆吉。倒數 {days} 日，好事正喺度排隊向你走緊過嚟！",
+            "【通勝批曰・宜淡定】泰山崩於前而色不變，尚餘 {days} 日，任佢風吹雨打，我自淡定飲奶茶。",
+            "【通勝批曰・宜豐收】播種有時，收割有時。再過 {days} 日，就係你歡呼豐收嘅大好良辰！",
+            "【通勝批曰・宜明媚】將心態調校到晴天模式，尚餘 {days} 日，每一日都值得你溫柔以待。",
+            "【通勝批曰・宜堅毅】滴水穿石，非一日之功。你已經堅持咗咁耐，尚餘 {days} 日一定難唔到你！",
+            "【通勝批曰・宜安康】平安是福，健康是金。尚餘 {days} 日，願你身心安康，笑逐顏開。",
+            "【通勝批曰・宜乘風】好風憑藉力，送我上青雲。尚餘 {days} 日，順住勢頭一路衝向終點！",
+            "【通勝批曰・宜自愛】先愛自己，而後愛人。尚餘 {days} 日，記得留點時間做自己鍾意嘅事。",
+            "【通勝批曰・宜晴朗】心情好，風水自然好！尚餘 {days} 日，保持正念，萬事皆可期。",
+            "【通勝批曰・宜從心】隨心而行，不負韶華。倒數 {days} 日，每一刻都活出最真實嘅自己。",
+            "【通勝批曰・宜凱旋】終點嘅紅線已經喺視野之內，尚餘 {days} 日，準備好迎接屬於你嘅勝利掌聲啦！",
+            "【通勝批曰・宜如意】吉祥如意，歲月靜好。尚餘 {days} 日，願所有美好都如約而至。",
+            "【通勝批曰・宜大吉】通勝算盡天下事，最吉莫過於你嘅堅持！尚餘 {days} 日，大吉大利，萬事勝意！"
+];
+
+        const TOXIC_QUOTES_100 = [
+            "【通勝批曰・忌天真】以為捱過呢 {days} 日就海闊天空？少年你太年輕了，下一個輪迴已經喺終點等緊你！",
+            "【通勝批曰・宜認命】尚餘 {days} 日咋，不過計埋今日老細臨時加畀你嗰堆嘢，體感時間起碼仲有三年。",
+            "【通勝批曰・忌幻想】世上無難事，只要肯放棄！但睇下張卡數，你都係乖乖地頂埋呢 {days} 日啦。",
+            "【通勝批曰・宜蛇王】今日通勝宜帶薪去廁所！既然仲有 {days} 日先解脫，唔通真係同公司搏命咩？",
+            "【通勝批曰・忌搏命】比你優秀嘅人仲努力緊，咁你努力嚟做乜？尚餘 {days} 日，準時收工先係硬道理！",
+            "【通勝批曰・宜扮忙】只要你皺住眉頭望住個芒猛咁撳鍵盤，呢 {days} 日老細就唔會發現你其實喺度發緊夢。",
+            "【通勝批曰・忌比較】人哋倒數 {days} 日係準備去歐洲旅行，你倒數 {days} 日只係為咗換個姿勢繼續捱騾仔。",
+            "【通勝批曰・宜躺平】努力不一定會成功，但唔努力一定好輕鬆！尚餘 {days} 日，能躺則躺，福壽綿長。",
+            "【通勝批曰・忌太早開心】見到尚餘 {days} 日好興奮？唔好意思，扣除睡眠時間，你清醒受苦嘅時間其實一秒都無少到。",
+            "【通勝批曰・宜飲凍檸茶】萬般皆下品，唯有收工高！尚餘 {days} 日，全靠杯少甜凍檸茶吊住條命仔。",
+            "【通勝批曰・忌講夢想】同香港人講理想？我嘅理想就係唔使返工！可惜現實係仲要捱多 {days} 日。",
+            "【通勝批曰・宜早退】精神上我已經放緊假，肉體上仲要坐多 {days} 日。靈肉分離，乃打工仔最高境界！",
+            "【通勝批曰・忌睇戶口】每當你想放棄呢 {days} 日嘅時候，打開銀行 App 睇下個餘額，你就會充滿力量繼續做牛做馬。",
+            "【通勝批曰・宜翻白眼】今日忌聽老細畫餅！個餅畫咗三年都未熟，仲有 {days} 日，翻個白眼當聽唔到算啦。",
+            "【通勝批曰・忌認真】認真你就輸了！尚餘 {days} 日，用三成力交八成戲，先係職場長壽秘訣。",
+            "【通勝批曰・宜請病假】通勝話今日氣場同辦公室八字不合，尚餘 {days} 日太漫長，不如射個波抖下氣？",
+            "【通勝批曰・忌加班】OT 唔會令你發達，只會令你脫髮！尚餘 {days} 日，夠鐘好執袋走人啦。",
+            "【通勝批曰・宜清醒】條條大路通羅馬，但有人一出世就喺羅馬，而你仲要喺香港捱多 {days} 日地鐵迫人。",
+            "【通勝批曰・忌信承諾】老細話「搞掂呢單嘢就輕鬆」，呢句話同「下次請你食飯」一樣，聽完仲要捱多 {days} 日。",
+            "【通勝批曰・宜網購】將倒數 {days} 日嘅怨氣化為購物車嘅動力！雖然錢無咗，但至少換嚟拆快遞嗰三秒鐘快樂。",
+            "【通勝批曰・忌強顏歡笑】既然生活強姦咗你，仲有 {days} 日先完，唔好逼自己笑啦，黑面都係一種態度！",
+            "【通勝批曰・宜自嘲】錢雖然買唔到快樂，但返工連錢都賺唔到幾多，仲要捱 {days} 日，諗起都覺得好笑。",
+            "【通勝批曰・忌照鏡】捱到尚餘 {days} 日，照下鏡睇下對黑眼圈，國寶熊貓見到你都要叫聲前輩。",
+            "【通勝批曰・宜摸魚】水至清則無魚，人至賤則無敵。尚餘 {days} 日，適當摸魚有益身心健康。",
+            "【通勝批曰・忌問前途】前途？前面咪就係仲有 {days} 日囉！過埋呢關先算啦，施主莫強求。",
+            "【通勝批曰・宜食垃圾食物】沙律救唔到你破碎嘅靈魂，只有炸雞同薯條可以撐住你過埋呢 {days} 日！",
+            "【通勝批曰・忌熱血】後生仔先講熱血，我哋呢啲老油條只講血壓。尚餘 {days} 日，千祈唔好激親自己。",
+            "【通勝批曰・宜已讀不回】放工後嘅工作群組等同靈異訊息，尚餘 {days} 日，唔睇唔覆保平安！",
+            "【通勝批曰・忌早起】每日叫醒我嘅唔係夢想，而係窮呀！為咗五斗米，仲要折腰多 {days} 日。",
+            "【通勝批曰・宜放空】靈魂已經去咗日本，肉體仲困喺香港辦公室倒數緊 {days} 日，施主請節哀。",
+            "【通勝批曰・忌自責】做錯嘢唔緊要，最緊要識得推卸責任！尚餘 {days} 日，千祈唔好將個鍋揹上身。",
+            "【通勝批曰・宜嘆氣】深呼吸唔係為咗靜心，係為咗忍住唔好當面鬧人。尚餘 {days} 日，忍字頭上一把刀！",
+            "【通勝批曰・忌期待週末】放假永遠好似閃電咁快，返工永遠好似流年咁慢。尚餘 {days} 日，時間相對論真係無呃人。",
+            "【通勝批曰・宜敷衍】「收到」、「OK」、「無問題」——熟讀職場三字經，保你平安度過呢 {days} 日。",
+            "【通勝批曰・忌轉工幻想】唔好以為過埋呢 {days} 日轉個環境會更好，天下烏鴉一樣黑，只係換個地方繼續倒數。",
+            "【通勝批曰・宜飲咖啡】你血管入面流緊嘅已經唔係血，係冰美式！尚餘 {days} 日，繼續靠咖啡因續命啦。",
+            "【通勝批曰・忌多管閒事】少做少錯，唔做唔錯！尚餘 {days} 日，收埋自己個頭，安全抵達終點最實際。",
+            "【通勝批曰・宜發呆】根據統計，日日望住倒數日曆睇呢 {days} 日，並唔會令日子過得快啲，只會令你更絕望。",
+            "【通勝批曰・忌信風水】與其擺風水陣催運，不如祈禱呢 {days} 日個客唔好再改 Requirement 仲實際！",
+            "【通勝批曰・宜裝傻】大智若愚，大巧若拙。有人搵你幫手？裝傻扮聽唔明，平安過埋呢 {days} 日。",
+            "【通勝批曰・忌高估自己】萬丈高樓從地起，輝煌只能靠自己？唔好傻啦，尚餘 {days} 日能準時下班已經係奇蹟。",
+            "【通勝批曰・宜黑面】保持禮貌而不失尷尬嘅微笑太累了，尚餘 {days} 日，直接擺臭臉可減少 80% 無謂溝通。",
+            "【通勝批曰・忌睇雞湯】飲咁多心靈雞湯有鬼用咩，連湯渣都無得食！倒數 {days} 日，面對現實把啦。",
+            "【通勝批曰・宜神遊】開會嗰陣點頭微笑，其實腦入面已經計劃緊 {days} 日之後點樣報復性消費。",
+            "【通勝批曰・忌熬夜】雖然今日好慘，但早啲瞓啦，因為聽日仲有 {days} 日減一嘅慘等緊你。",
+            "【通勝批曰・宜卸責】只要問題解決唔到，就解決提出問題嘅人。尚餘 {days} 日，千祈唔好做提出問題嗰個！",
+            "【通勝批曰・忌浪漫】生活唔係韓劇，無霸道總裁嚟救你，只有霸道老細逼你喺 {days} 日內交貨。",
+            "【通勝批曰・宜八卦】支撐我捱埋呢 {days} 日嘅唯一動力，就係同隔離位同事一齊講是非！",
+            "【通勝批曰・忌逞強】頂唔順就喊出嚟啦，反正喊完抹乾眼淚，仲有 {days} 日要繼續頂。",
+            "【通勝批曰・宜算命】大師掐指一算，你命中缺錢、五行缺假，未來 {days} 日依然係勞碌命格。",
+            "【通勝批曰・忌合群】唔好勉強自己融入無聊嘅圈子，尚餘 {days} 日，做個孤傲嘅準時收工俠仲爽。",
+            "【通勝批曰・宜買六合彩】雖然明知中獎機率低過被雷劈，但呢 {days} 日入面，每逢攪珠日都係你唯一嘅希望之光！",
+            "【通勝批曰・忌大志】胸無大志先係最高境界！尚餘 {days} 日，目標只有一個：平安無痛咁混過去。",
+            "【通勝批曰・宜靜音】將手機調至靜音，將老細調至背景音，尚餘 {days} 日即可獲得內心短暫安寧。",
+            "【通勝批曰・忌反思】失敗乃成功之母，但成功之母好明顯唔想認你呢個仔。尚餘 {days} 日，唔好諗咁多啦！",
+            "【通勝批曰・宜擺爛】當你開始擺爛，就會發現世界突然變得好寬容。尚餘 {days} 日，試下放過自己、折磨別人。",
+            "【通勝批曰・忌勤力】今日做晒聽日嘅嘢，聽日老細就會畀後天嘅嘢你做！尚餘 {days} 日，記得留番啲手尾。",
+            "【通勝批曰・宜遲到三分鐘】既然早到唔會加人工，尚餘 {days} 日，踩界打卡先係對薪水最基本嘅尊重。",
+            "【通勝批曰・忌減肥】返工已經夠苦，仲要戒口？尚餘 {days} 日，食飽啲先有力氣應付班極品！",
+            "【通勝批曰・宜佛系】緣份到了，自然就到終點。尚餘 {days} 日，不悲不喜，看破紅塵。",
+            "【通勝批曰・忌多嘴】開會最忌有個人意見，講多錯多，尚餘 {days} 日，做棵安靜嘅辦公室植物人最安全。",
+            "【通勝批曰・宜逃避】逃避雖可恥但好有用！遇到麻煩嘢拖得一日得一日，拖下拖下 {days} 日就過咗去。",
+            "【通勝批曰・忌衝動】每次想拍枱辭職嗰陣，默念三聲「尚餘 {days} 日」，然後乖乖坐低繼續打字。",
+            "【通勝批曰・宜帶耳機】戴上耳機唔一定係聽緊歌，只係想話畀全世界知：未來 {days} 日請勿拍打餵食。",
+            "【通勝批曰・忌相信奇蹟】奇蹟之所以叫奇蹟，就係因為唔會發生喺你身上。尚餘 {days} 日，腳踏實地捱把啦！",
+            "【通勝批曰・宜倒數】一日望八百次呢個倒數器，數字都係顯示 {days} 日㗎啦，返去做嘢啦施主！",
+            "【通勝批曰・忌完美主義】六十分萬歲，多一分浪費！尚餘 {days} 日，交到貨咪算囉，仲想攞奧斯卡咩？",
+            "【通勝批曰・宜自閉】社交電量已經跌至 0%，未來 {days} 日進入省電模式，生人勿近。",
+            "【通勝批曰・忌比較人工】同人唔同命，同遮唔同柄。人哋日薪等於你週薪，你都係默默數埋呢 {days} 日算啦。",
+            "【通勝批曰・宜伸懶腰】今日唯一嘅運動量，就係望住「尚餘 {days} 日」深深嘆一口氣再伸個懶腰。",
+            "【通勝批曰・忌立Flag】千祈唔好講「今日一定好得閒」，一講完呢句，包保你未來 {days} 日忙到甩轆！",
+            "【通勝批曰・宜麻木】痛下痛下就慣㗎啦！捱到只剩 {days} 日，你嘅面皮同心臟已經刀槍不入。",
+            "【通勝批曰・忌問點解】職場上無「點解」，只有「係咁㗎啦」。尚餘 {days} 日，接受荒謬先可以全身而退。",
+            "【通勝批曰・宜洗版】將呢個尚餘 {days} 日嘅畫面 Cap 圖Send 畀同事，獨慘慘不如眾慘慘！",
+            "【通勝批曰・忌樂極生悲】以為過埋呢 {days} 日就自由？放心，生活總有新嘅驚嚇準備緊畀你。",
+            "【通勝批曰・宜慳錢】睇下自己個荷包，再睇下尚餘 {days} 日，今日午餐都係食兩餸飯最實際。",
+            "【通勝批曰・忌替人擔心】自己都未顧掂仲擔心人？尚餘 {days} 日，泥菩薩過江，保住自己頂烏紗先啦！",
+            "【通勝批曰・宜發夢】白日夢係免費嘅精神止痛藥，尚餘 {days} 日，每日服食三次，效果顯著。",
+            "【通勝批曰・忌硬頸】同傻人爭論只會顯得你都好傻，尚餘 {days} 日，笑住講句「你啱」就搞掂晒！",
+            "【通勝批曰・宜早抖】今日嘅垃圾情緒到此為止，尚餘 {days} 日，留番啲力氣聽日繼續吐血。",
+            "【通勝批曰・忌假大空】咩團隊精神、共創雙贏，講到尾咪又係要你捱埋呢 {days} 日！",
+            "【通勝批曰・宜飲水】多飲水，一來健康，二來可以光明正大行去水機兼去多幾次洗手間，輕鬆消磨呢 {days} 日。",
+            "【通勝批曰・忌自作多情】公司無咗邊個都照樣轉，所以呢 {days} 日千祈唔好為咗公事搞壞自己身體。",
+            "【通勝批曰・宜看破】年輕時想改變世界，現在只想喺呢 {days} 日入面唔好被世界改變我嘅收工時間。",
+            "【通勝批曰・忌心軟】人善被人欺，馬善被人騎。尚餘 {days} 日，識得Say No 先唔會做到隻積咁！",
+            "【通勝批曰・宜偷笑】雖然仲有 {days} 日先捱完，但諗下請假扣少咗幾多日，係咪即刻有種賺咗嘅錯覺呢？",
+            "【通勝批曰・忌回頭】好馬不吃回頭草，因為回頭草已經畀人食晒。尚餘 {days} 日，頂硬上啦！",
+            "【通勝批曰・宜耍太極】左推右擋，借力打力，將波踢畀下家，呢 {days} 日你就可以穩坐釣魚船。",
+            "【通勝批曰・忌熬雞湯】雞湯飲得多會痛風，毒雞湯飲一啖即刻退燒！尚餘 {days} 日，清醒啲做人啦。",
+            "【通勝批曰・宜閉目】唔係瞓著咗，只係用眼過度需要閉目養神。尚餘 {days} 日，半夢半醒最逍遙。",
+            "【通勝批曰・忌高調】槍打出頭鳥，最緊要低調。尚餘 {days} 日，做個透明人靜靜地贏到最後。",
+            "【通勝批曰・宜吐槽】將不滿講出嚟叫排毒，將不滿吞落肚叫內傷。尚餘 {days} 日，每日一呻，百病不侵！",
+            "【通勝批曰・忌懷舊】唔好再諗以前幾風光，睇下眼前仲有 {days} 日要捱，活在當下（嘅痛苦）啦！",
+            "【通勝批曰・宜認清現實】所謂「能者多勞」，意思係有能力嘅人做到死，無能力嘅人喺度睇。尚餘 {days} 日，別做能者！",
+            "【通勝批曰・忌大驚小怪】天塌落嚟有高個子頂住，你咁矮驚乜鬼？尚餘 {days} 日，天跌落嚟當被冚。",
+            "【通勝批曰・宜惜命】工作係老細嘅，條命係自己嘅。尚餘 {days} 日，保命要緊，切勿過度燃燒！",
+            "【通勝批曰・忌期待加薪】夢想係豐滿嘅，人工係骨感嘅。尚餘 {days} 日，唔扣人工已經當贏咗。",
+            "【通勝批曰・宜倒數收工】大倒數仲有 {days} 日，小倒數仲有幾個鐘就收工，分開嚟計係咪無咁絕望先？",
+            "【通勝批曰・忌庸人自擾】船到橋頭自然直，直唔到咪沉囉！尚餘 {days} 日，唔好自己嚇自己。",
+            "【通勝批曰・宜苦中作樂】既然改變唔到仲要捱 {days} 日嘅事實，不如笑住睇下身邊啲人仲慘過自己啦！"
+];
+
+        // 記錄尚未抽過的索引池（洗牌袋機制，確保抽完 100 句前絕不重覆）
+        let soulPool = [];
+        let toxicPool = [];
+
+        function getNextQuoteFromPool(mode) {
+            const sourceList = mode === 'soul' ? SOUL_QUOTES_100 : TOXIC_QUOTES_100;
+            let pool = mode === 'soul' ? soulPool : toxicPool;
+
+            if (pool.length === 0) {
+                pool = Array.from({ length: sourceList.length }, (_, i) => i);
+                // Fisher-Yates 洗牌演算法
+                for (let i = pool.length - 1; i > 0; i--) {
+                    const j = Math.floor(Math.random() * (i + 1));
+                    [pool[i], pool[j]] = [pool[j], pool[i]];
+                }
+                if (mode === 'soul') {
+                    soulPool = pool;
+                } else {
+                    toxicPool = pool;
+                }
+            }
+
+            const idx = pool.pop();
+            const rawTemplate = sourceList[idx];
+            const text = rawTemplate.replace(/\{days\}/g, lastCalculatedRemaining);
+            return {
+                text,
+                indexNum: idx + 1,
+                total: sourceList.length
+            };
+        }
+
+        function updateSoupModeButtonsUI() {
+            const btnSoul = document.getElementById('btnSoulMode');
+            const btnToxic = document.getElementById('btnToxicMode');
+            const quoteTag = document.getElementById('quoteTag');
+
+            if (currentSoupMode === 'soul') {
+                btnSoul.className = 'px-2.5 sm:px-3 py-1.5 text-xs font-bold bg-tsRed text-white transition flex items-center gap-1';
+                btnToxic.className = 'px-2.5 sm:px-3 py-1.5 text-xs font-bold bg-white text-tsRed hover:bg-red-50 transition flex items-center gap-1';
+                quoteTag.textContent = '【通勝心靈雞湯・百籤寶鑑】';
+            } else {
+                btnToxic.className = 'px-2.5 sm:px-3 py-1.5 text-xs font-bold bg-tsInk text-yellow-50 transition flex items-center gap-1';
+                btnSoul.className = 'px-2.5 sm:px-3 py-1.5 text-xs font-bold bg-white text-tsRed hover:bg-red-50 transition flex items-center gap-1';
+                quoteTag.textContent = '【通勝毒雞湯・百籤寶鑑】';
+            }
+        }
+
+        function switchSoupMode(mode) {
+            currentSoupMode = mode;
+            updateSoupModeButtonsUI();
+            saveSettingsToStorage();
+            generateDynamicQuote();
+        }
+
+        function generateDynamicQuote() {
+            const quoteTextEl = document.getElementById('quoteText');
+            const statusEl = document.getElementById('quoteSourceStatus');
+            const genIcon = document.getElementById('btnGenerateIcon');
+
+            genIcon.classList.add('fa-spin');
+            setTimeout(() => genIcon.classList.remove('fa-spin'), 250);
+
+            const picked = getNextQuoteFromPool(currentSoupMode);
+            quoteTextEl.textContent = picked.text;
+
+            const modeLabel = currentSoupMode === 'soul' ? '心靈雞湯' : '毒雞湯';
+            statusEl.textContent = `${modeLabel}第 ${picked.indexNum} / ${picked.total} 籤（尚餘 ${lastCalculatedRemaining} 日）`;
+
+            lastSavedQuoteText = picked.text;
+            lastSavedQuoteStatus = statusEl.textContent;
+            saveSettingsToStorage();
+        }
+
+        /*************************************************************************
+         * 9. 2020-2027 香港公眾假期總覽彈出視窗
+         *************************************************************************/
+        function openHolidayModal(e) {
+            if (e) e.preventDefault();
+            const modal = document.getElementById('holidayModal');
+            modal.classList.remove('hidden');
+            modal.classList.add('flex');
+
+            const startYear = (parseDateStr(document.getElementById('startDateInput').value) || getTodayDateObj()).getFullYear();
+            const defaultYear = Math.min(Math.max(startYear, 2020), 2027);
+            renderModalYearTabs(defaultYear);
+        }
+
+        function closeHolidayModal() {
+            const modal = document.getElementById('holidayModal');
+            modal.classList.add('hidden');
+            modal.classList.remove('flex');
+        }
+
+        function renderModalYearTabs(selectedYear) {
+            const tabsContainer = document.getElementById('modalYearTabs');
+            tabsContainer.innerHTML = '';
+
+            for (let y = 2020; y <= 2027; y++) {
+                const btn = document.createElement('button');
+                btn.type = 'button';
+                btn.className = `px-3 py-1 rounded text-xs font-bold border transition ${
+                    y === selectedYear
+                        ? 'bg-tsRed text-white border-tsRed'
+                        : 'bg-white text-tsInk border-stone-400 hover:bg-red-50'
+                }`;
+                btn.textContent = `${y}年`;
+                btn.onclick = () => renderModalYearTabs(y);
+                tabsContainer.appendChild(btn);
+            }
+
+            const listContainer = document.getElementById('modalHolidayList');
+            listContainer.innerHTML = '';
+
+            const entries = Object.entries(HK_PUBLIC_HOLIDAYS)
+                .filter(([dStr]) => dStr.startsWith(`${selectedYear}-`))
+                .sort(([a], [b]) => a.localeCompare(b));
+
+            entries.forEach(([dStr, name], idx) => {
+                const dObj = parseDateStr(dStr);
+                const wk = WEEKDAY_NAMES[dObj.getDay()];
+                const item = document.createElement('div');
+                item.className = 'flex items-center justify-between p-2.5 rounded bg-white border border-stone-300 shadow-sm';
+                item.innerHTML = `
+                    <div class="flex items-center gap-2.5">
+                        <span class="w-6 h-6 rounded-full bg-red-100 text-tsRed font-bold text-xs flex items-center justify-center">${idx + 1}</span>
+                        <div>
+                            <div class="font-bold text-tsInk">${name}</div>
+                            <div class="text-xs text-stone-500">${dStr}（星期${wk}）</div>
+                        </div>
+                    </div>
+                    <span class="chinese-seal text-[10px]">紅日</span>
+                `;
+                listContainer.appendChild(item);
+            });
+        }
+    </script>
+</body>
+</html>
